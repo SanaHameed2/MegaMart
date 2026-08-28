@@ -25,7 +25,10 @@ export default function ProductListing() {
   const [inStockOnly, setInStockOnly] = useState(false);
   const [sort, setSort] = useState<ProductFilters['sort']>('featured');
 
-  useEffect(() => { fetchBrands().then(setBrands).catch(() => {}); }, []);
+  // 🔥 FIX: Brands ko category slug ke hisaab se fetch karein
+  useEffect(() => {
+    fetchBrands(slug).then(setBrands).catch(() => {});
+  }, [slug]);  // <- slug dependency add kiya
 
   const load = useCallback(async () => {
     setError(null);

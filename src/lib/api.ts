@@ -89,10 +89,37 @@ export async function fetchCategories() {
   return data as Category[];
 }
 
-export async function fetchBrands() {
-  const { data, error } = await supabase.from('brands').select('*').order('name');
+// 🔥 UPDATED: Category-specific brands fetch karein
+export async function fetchBrands(categorySlug?: string) {
+  let query = supabase
+    .from('products')
+    .select('brand_id, brands(id, name, slug)')
+    .eq('status', 'published')
+    .eq('is_active', true);
+
+  // Agar category slug diya hai toh filter apply karein
+  if (categorySlug) {
+    // Pehle category id dhoondhein
+    const { data: category } = await supabase
+      .from('categories')
+      .select('id')
+      .eq('slug', categorySlug)
+      .single();
+    
+    if (category) {
+      query = query.eq('category_id', category.id);
+    }
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
-  return data as Brand[];
+
+  // Unique brands extract karein
+  const uniqueBrands = [...new Map(
+    data?.map(item => [item.brands.id, item.brands])
+  ).values()];
+
+  return uniqueBrands as Brand[];
 }
 
 export async function fetchProductReviews(productId: string) {
