@@ -29,10 +29,31 @@ export async function fetchProducts(filters: ProductFilters = {}) {
 
   let query = supabase.from('products').select(PRODUCT_SELECT, { count: 'exact' }).eq('status', 'published');
 
+  // 🔥 FIX: Category + Sub-categories include karein
   if (categorySlug) {
-    const { data: cat } = await supabase.from('categories').select('id').eq('slug', categorySlug).single();
-    if (cat) query = query.eq('category_id', cat.id);
+    const { data: category } = await supabase
+      .from('categories')
+      .select('id')
+      .eq('slug', categorySlug)
+      .single();
+    
+    if (category) {
+      // Saari sub-categories fetch karein
+      const { data: subCategories } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('parent_id', category.id);
+      
+      // Category IDs ka array banayein (parent + sub-categories)
+      const categoryIds = [category.id];
+      if (subCategories && subCategories.length > 0) {
+        categoryIds.push(...subCategories.map(c => c.id));
+      }
+      
+      query = query.in('category_id', categoryIds);
+    }
   }
+
   if (brandSlugs && brandSlugs.length > 0) {
     const { data: brands } = await supabase.from('brands').select('id').in('slug', brandSlugs);
     if (brands) query = query.in('brand_id', brands.map((b) => b.id));
@@ -89,7 +110,7 @@ export async function fetchCategories() {
   return data as Category[];
 }
 
-// 🔥 UPDATED: Category-specific brands fetch karein
+// 🔥 FIX: Brands mein bhi sub-categories include karein
 export async function fetchBrands(categorySlug?: string) {
   let query = supabase
     .from('products')
@@ -97,9 +118,7 @@ export async function fetchBrands(categorySlug?: string) {
     .eq('status', 'published')
     .eq('is_active', true);
 
-  // Agar category slug diya hai toh filter apply karein
   if (categorySlug) {
-    // Pehle category id dhoondhein
     const { data: category } = await supabase
       .from('categories')
       .select('id')
@@ -107,17 +126,35 @@ export async function fetchBrands(categorySlug?: string) {
       .single();
     
     if (category) {
-      query = query.eq('category_id', category.id);
+      // Sub-categories bhi include karein brands ke liye
+      const { data: subCategories } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('parent_id', category.id);
+      
+      const categoryIds = [category.id];
+      if (subCategories && subCategories.length > 0) {
+        categoryIds.push(...subCategories.map(c => c.id));
+      }
+      
+      query = query.in('category_id', categoryIds);
     }
   }
 
   const { data, error } = await query;
   if (error) throw error;
 
-  // Unique brands extract karein
-  const uniqueBrands = [...new Map(
-    data?.map(item => [item.brands.id, item.brands])
-  ).values()];
+  const brandMap = new Map();
+  data?.forEach((item: any) => {
+    if (item.brands && !brandMap.has(item.brands.id)) {
+      brandMap.set(item.brands.id, {
+        id: item.brands.id,
+        name: item.brands.name,
+        slug: item.brands.slug
+      });
+    }
+  });
+  const uniqueBrands = Array.from(brandMap.values());
 
   return uniqueBrands as Brand[];
 }
@@ -140,8 +177,6 @@ export async function submitReview(productId: string, userId: string, rating: nu
   return { error: error?.message ?? null };
 }
 
-/** Places an order via the server-side `place_order` Postgres function.
- * Prices/stock are re-validated in the database — never trusted from the client. */
 export async function placeOrder(
   items: { product_id: string; quantity: number; variant_id?: string | null }[],
   shippingAddress: Record<string, unknown>,
@@ -155,7 +190,7 @@ export async function placeOrder(
     p_payment_method: paymentMethod,
   });
   if (error) throw error;
-  return data as string; // order id
+  return data as string;
 }
 
 export async function fetchMyOrders(userId: string) {
