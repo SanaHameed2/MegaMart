@@ -17,8 +17,9 @@ function writeGuestCart(lines: CartLine[]) {
   localStorage.setItem(GUEST_CART_KEY, JSON.stringify(lines));
 }
 
-interface CartState {
+export interface CartState {
   lines: CartLine[];
+  items: CartLine[]; // Alias for Header compatibility
   loading: boolean;
   hydrate: (userId: string | null) => Promise<void>;
   addItem: (line: CartLine, userId: string | null) => Promise<void>;
@@ -48,6 +49,9 @@ async function getOrCreateCartId(userId: string): Promise<string> {
 
 export const useCart = create<CartState>((set, get) => ({
   lines: [],
+  get items() {
+    return get().lines;
+  },
   loading: false,
 
   hydrate: async (userId) => {
