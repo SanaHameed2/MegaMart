@@ -4,7 +4,8 @@ import { fetchProducts, fetchCategories } from '../lib/api';
 import type { Product, Category } from '../types';
 import ProductCard from '../components/ProductCard';
 import { ProductGridSkeleton, ErrorState } from '../components/States';
-import HeroSlider from '../components/HeroSlider'; // 1. Imported HeroSlider
+import HeroSlider from '../components/HeroSlider';
+import SmartphoneSection from '../components/SmartphoneSection'; // 1. Imported SmartphoneSection
 
 export default function Home() {
   const [deals, setDeals] = useState<Product[] | null>(null);
@@ -32,10 +33,14 @@ export default function Home() {
 
   return (
     <div>
-      {/* 2. Replaced static green section with dynamic HeroSlider */}
+      {/* Dynamic Hero Slider */}
       <HeroSlider />
 
-      <section className="container" style={{ padding: '40px 20px' }}>
+      {/* 2. Added Smartphone Deals Section directly below Hero Slider */}
+      <SmartphoneSection />
+
+      {/* Shop by Category Section */}
+      <section className="container" style={{ padding: '20px 20px 40px' }}>
         <h2 style={{ fontSize: 22, marginBottom: 16 }}>Shop by category</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 14 }}>
           {categories.map((c) => (
@@ -48,6 +53,7 @@ export default function Home() {
 
       {error && <ErrorState message={error} onRetry={load} />}
 
+      {/* Today's Deals Section */}
       <section className="container" style={{ padding: '20px 20px 40px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
           <h2 style={{ fontSize: 22 }}>Today's deals</h2>
@@ -61,6 +67,7 @@ export default function Home() {
         )}
       </section>
 
+      {/* Trending Products Section */}
       <section className="container" style={{ padding: '20px 20px 60px' }}>
         <h2 style={{ fontSize: 22, marginBottom: 16 }}>Trending products</h2>
         {trending === null ? <ProductGridSkeleton /> : (

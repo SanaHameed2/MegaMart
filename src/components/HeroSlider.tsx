@@ -52,13 +52,20 @@ export const HeroSlider: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6">
-      {/* Outer Banner Box */}
+    <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 font-['HK_Grotesk',sans-serif]">
+      {/* Container with overflow-hidden acting as Figma Mask Group */}
       <div className="relative rounded-3xl overflow-hidden bg-[#212844] h-[280px] sm:h-[320px] md:h-[360px] flex items-center shadow-lg">
         
-        {/* Background Overlay Circular Lines */}
-        <div className="absolute right-[-50px] top-[-50px] w-[450px] h-[450px] rounded-full border border-white/5 pointer-events-none" />
-        <div className="absolute right-[50px] top-[10px] w-[350px] h-[350px] rounded-full border border-white/5 pointer-events-none" />
+        {/* Figma Layering: Group 16 Vector Circles */}
+        <div className="absolute inset-0 pointer-events-none z-0">
+          {/* Top Right Circle Arc Pair (Ellipse 27 & 29) */}
+          <div className="absolute -right-20 -top-40 w-[550px] h-[550px] rounded-full border-[1.5px] border-white/10" />
+          <div className="absolute -right-28 -top-48 w-[640px] h-[640px] rounded-full border-[1.5px] border-white/10" />
+
+          {/* Bottom Center Circle Pair (Ellipse 28 & 30) */}
+          <div className="absolute left-[58%] -bottom-48 -translate-x-1/2 w-[320px] h-[320px] rounded-full border-[1.5px] border-white/10" />
+          <div className="absolute left-[58%] -bottom-56 -translate-x-1/2 w-[400px] h-[400px] rounded-full border-[1.5px] border-white/10" />
+        </div>
 
         {slides.map((slide, index) => (
           <div
@@ -68,25 +75,22 @@ export const HeroSlider: React.FC = () => {
             }`}
           >
             {/* Text Content */}
-            <div className="max-w-xl z-20 text-white font-['HK_Grotesk',sans-serif]">
-              {/* HK Grotesk 30 SemiBold */}
+            <div className="max-w-xl z-20 text-white">
               <p className="text-lg sm:text-2xl md:text-[30px] font-semibold text-white/90 mb-2 leading-tight">
                 {slide.subtitle}
               </p>
 
-              {/* HK Grotesk 63 Bold */}
               <h1 className="text-3xl sm:text-5xl md:text-[63px] font-bold text-white tracking-wide uppercase leading-tight mb-3">
                 {slide.title}
               </h1>
 
-              {/* HK Grotesk 30 SemiBold */}
               <p className="text-lg sm:text-2xl md:text-[30px] font-semibold text-white/90 tracking-wide">
                 {slide.discount}
               </p>
             </div>
 
             {/* Banner Image */}
-            <div className="absolute right-12 sm:right-20 top-1/2 -translate-y-1/2 h-[80%] hidden sm:flex items-center justify-center z-20">
+            <div className="absolute right-12 sm:right-20 top-1/2 -translate-y-1/2 h-[85%] hidden sm:flex items-center justify-center z-20">
               <img
                 src={slide.image}
                 alt={slide.title}
@@ -96,7 +100,7 @@ export const HeroSlider: React.FC = () => {
           </div>
         ))}
 
-        {/* Circular Prev/Next Controls */}
+        {/* Navigation Arrows */}
         <button
           onClick={prevSlide}
           className="absolute left-[-20px] sm:left-[-24px] z-30 bg-white text-[#008ECC] w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-md flex items-center justify-center hover:scale-105 transition-transform"
@@ -113,7 +117,7 @@ export const HeroSlider: React.FC = () => {
           <ChevronRight className="w-6 h-6 mr-4" />
         </button>
 
-        {/* Bottom Dash Pagination */}
+        {/* Dash Pagination */}
         <div className="absolute bottom-6 left-10 sm:left-16 md:left-20 z-30 flex items-center gap-2">
           {slides.map((_, index) => (
             <button
