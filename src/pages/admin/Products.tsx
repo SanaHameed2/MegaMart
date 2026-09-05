@@ -14,6 +14,10 @@ export default function AdminProducts() {
   const [form, setForm] = useState(emptyForm);
   const [showForm, setShowForm] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  
+  // 🆕 Image upload state
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   async function load() {
     const [{ data: p }, { data: c }, { data: b }] = await Promise.all([
@@ -26,6 +30,94 @@ export default function AdminProducts() {
     setBrands(b ?? []);
   }
   useEffect(() => { load(); }, []);
+
+  // 🆕 Image upload function
+  async function handleImageUpload(file: File, productId: string) {
+    try {
+      setUploading(true);
+      setUploadProgress(0);
+
+      // 1. Unique file name generate karein
+      const ext = file.name.split('.').pop();
+      const fileName = `${productId}-${Date.now()}.${ext}`;
+      const filePath = `${fileName}`;
+
+      // 2. Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      setUploadProgress(50);
+
+      // 3. Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setUploadProgress(75);
+
+      // 4. Delete old image (if any)
+      if (form.image_url) {
+        const oldPath = form.image_url.split('/').pop();
+        if (oldPath) {
+          await supabase.storage.from('product-images').remove([oldPath]);
+        }
+        await supabase.from('product_images').delete().eq('product_id', productId);
+      }
+
+      // 5. Save to product_images table
+      const { error: dbError } = await supabase
+        .from('product_images')
+        .insert({
+          product_id: productId,
+          url: publicUrl,
+          sort_order: 0,
+          alt_text: file.name,
+        });
+
+      if (dbError) throw dbError;
+
+      setUploadProgress(100);
+      
+      // 6. Update form with new image URL
+      setForm({ ...form, image_url: publicUrl });
+      
+      // 7. Reload products
+      await load();
+      
+      alert('Image uploaded successfully! 🎉');
+    } catch (error) {
+      console.error('Upload error:', error);
+      setMsg('Failed to upload image. Please try again.');
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+    }
+  }
+
+  // 🆕 Delete image function
+  async function deleteImage(productId: string, imageUrl: string) {
+    if (!confirm('Delete this image?')) return;
+
+    try {
+      const path = imageUrl.split('/').pop();
+      if (path) {
+        await supabase.storage.from('product-images').remove([path]);
+      }
+      await supabase.from('product_images').delete().eq('product_id', productId);
+      
+      setForm({ ...form, image_url: '' });
+      await load();
+    } catch (error) {
+      console.error('Delete error:', error);
+      setMsg('Failed to delete image.');
+    }
+  }
 
   function startCreate() { setForm(emptyForm); setShowForm(true); }
   function startEdit(p: any) {
@@ -57,7 +149,8 @@ export default function AdminProducts() {
       if (error) { setMsg(error.message); return; }
       productId = data.id;
     }
-    if (form.image_url) {
+    // If image URL was entered manually, save it
+    if (form.image_url && !form.image_url.startsWith('http')) {
       await supabase.from('product_images').delete().eq('product_id', productId);
       await supabase.from('product_images').insert({ product_id: productId, url: form.image_url, sort_order: 0 });
     }
@@ -136,10 +229,72 @@ export default function AdminProducts() {
               <option value="archived">Archived</option>
             </select>
           </div>
+          
+          {/* 🆕 Image Upload Section */}
           <div style={{ gridColumn: '1 / -1' }}>
-            <label className="label" htmlFor="p-image">Image URL</label>
-            <input id="p-image" className="input" placeholder="/assets/products/example.jpg or https://..." value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} />
+            <label className="label">Product Image</label>
+            
+            {/* Image Preview */}
+            {form.image_url && (
+              <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <img src={form.image_url} alt="Product" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8 }} />
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => deleteImage(form.id, form.image_url)}
+                >
+                  Remove Image
+                </button>
+              </div>
+            )}
+
+            {/* Upload Button */}
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <label className="btn btn-primary" style={{ cursor: uploading ? 'not-allowed' : 'pointer' }}>
+                {uploading ? `Uploading... ${uploadProgress}%` : '📸 Upload Image'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file && form.id) {
+                      handleImageUpload(file, form.id);
+                    } else if (file && !form.id) {
+                      setMsg('Please save the product first, then upload image.');
+                    }
+                    e.target.value = '';
+                  }}
+                  disabled={uploading || !form.id}
+                  style={{ display: 'none' }}
+                />
+              </label>
+              {!form.id && (
+                <span style={{ fontSize: 13, color: 'var(--color-ink-soft)' }}>
+                  Save product first to upload images
+                </span>
+              )}
+            </div>
+
+            {/* Progress Bar */}
+            {uploading && (
+              <div style={{ marginTop: 8, height: 4, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${uploadProgress}%`, background: 'var(--color-primary)', transition: 'width 0.3s' }} />
+              </div>
+            )}
+
+            {/* OR Manual URL Input */}
+            <div style={{ marginTop: 12 }}>
+              <label className="label" htmlFor="p-image">Or enter image URL</label>
+              <input
+                id="p-image"
+                className="input"
+                placeholder="https://example.com/image.jpg"
+                value={form.image_url}
+                onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+              />
+            </div>
           </div>
+
           {msg && <p style={{ gridColumn: '1 / -1', color: 'var(--color-danger)', fontSize: 13 }}>{msg}</p>}
           <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 8 }}>
             <button className="btn btn-primary">{form.id ? 'Save changes' : 'Create product'}</button>
