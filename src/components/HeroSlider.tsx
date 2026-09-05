@@ -4,32 +4,32 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 interface Slide {
   id: number;
   image: string;
-  title: string;
   subtitle: string;
+  title: string;
   discount: string;
 }
 
 const slides: Slide[] = [
   {
     id: 1,
-    image: '/assets/images/mango.jpg',
-    title: 'FRESH MANGOES & FRUITS',
-    subtitle: 'Get farm-fresh organic mangoes and seasonal fruits delivered to your doorstep.',
-    discount: 'UP TO 30% OFF',
+    image: '/assets/images/image 2.png',
+    subtitle: 'Best Deal Online on smart watches',
+    title: 'SMART WEARABLE.',
+    discount: 'UP to 80% OFF',
   },
   {
     id: 2,
     image: '/assets/images/iphone.png',
-    title: 'SMARTPHONES & GADGETS',
-    subtitle: 'Upgrade your tech with the latest models and exclusive online deals.',
-    discount: 'SPECIAL OFFER',
+    subtitle: 'Best Deal Online on smartphones',
+    title: 'SMARTPHONES.',
+    discount: 'UP to 50% OFF',
   },
   {
     id: 3,
     image: '/assets/images/washing machine.png',
-    title: 'HOME APPLIANCES',
-    subtitle: 'High quality daily home essentials priced fair with fast delivery.',
-    discount: 'MEGA SALE',
+    subtitle: 'Best Deal Online on home appliances',
+    title: 'HOME APPLIANCES.',
+    discount: 'UP to 40% OFF',
   },
 ];
 
@@ -52,62 +52,77 @@ export const HeroSlider: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4">
-      <div className="relative rounded-2xl overflow-hidden bg-[#212529] h-[260px] sm:h-[340px] md:h-[380px] shadow-sm flex items-center">
+    <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6">
+      {/* Outer Banner Box */}
+      <div className="relative rounded-3xl overflow-hidden bg-[#212844] h-[280px] sm:h-[320px] md:h-[360px] flex items-center shadow-lg">
         
+        {/* Background Overlay Circular Lines */}
+        <div className="absolute right-[-50px] top-[-50px] w-[450px] h-[450px] rounded-full border border-white/5 pointer-events-none" />
+        <div className="absolute right-[50px] top-[10px] w-[350px] h-[350px] rounded-full border border-white/5 pointer-events-none" />
+
         {slides.map((slide, index) => (
           <div
             key={slide.id}
-            className={`absolute inset-0 transition-opacity duration-700 ease-in-out flex items-center justify-between px-8 sm:px-16 ${
+            className={`absolute inset-0 transition-opacity duration-500 ease-in-out flex items-center justify-between px-10 sm:px-16 md:px-20 ${
               index === currentIndex ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
             }`}
           >
-            <div className="max-w-md z-20 text-white">
-              <span className="inline-block bg-[#008ECC] text-white text-[11px] font-bold px-3 py-1 rounded-full mb-3 tracking-wide">
-                {slide.discount}
-              </span>
-              <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight mb-2 uppercase">
-                {slide.title}
-              </h2>
-              <p className="text-xs sm:text-sm text-gray-300 mb-6 font-light">
+            {/* Text Content */}
+            <div className="max-w-xl z-20 text-white font-['HK_Grotesk',sans-serif]">
+              {/* HK Grotesk 30 SemiBold */}
+              <p className="text-lg sm:text-2xl md:text-[30px] font-semibold text-white/90 mb-2 leading-tight">
                 {slide.subtitle}
               </p>
-              <button className="bg-[#008ECC] hover:bg-[#0077A9] text-white text-xs font-semibold px-6 py-2.5 rounded-lg transition-colors">
-                Shop Now
-              </button>
+
+              {/* HK Grotesk 63 Bold */}
+              <h1 className="text-3xl sm:text-5xl md:text-[63px] font-bold text-white tracking-wide uppercase leading-tight mb-3">
+                {slide.title}
+              </h1>
+
+              {/* HK Grotesk 30 SemiBold */}
+              <p className="text-lg sm:text-2xl md:text-[30px] font-semibold text-white/90 tracking-wide">
+                {slide.discount}
+              </p>
             </div>
 
-            <div className="absolute right-6 top-1/2 -translate-y-1/2 w-1/2 max-h-[80%] hidden sm:flex items-center justify-center">
+            {/* Banner Image */}
+            <div className="absolute right-12 sm:right-20 top-1/2 -translate-y-1/2 h-[80%] hidden sm:flex items-center justify-center z-20">
               <img
                 src={slide.image}
                 alt={slide.title}
-                className="max-h-[300px] object-contain drop-shadow-2xl"
+                className="max-h-full w-auto object-contain drop-shadow-2xl"
               />
             </div>
           </div>
         ))}
 
+        {/* Circular Prev/Next Controls */}
         <button
           onClick={prevSlide}
-          className="absolute left-3 z-30 bg-white/20 hover:bg-white/40 text-white p-2 rounded-full transition-all"
+          className="absolute left-[-20px] sm:left-[-24px] z-30 bg-white text-[#008ECC] w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-md flex items-center justify-center hover:scale-105 transition-transform"
+          aria-label="Previous Slide"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-6 h-6 ml-4" />
         </button>
+        
         <button
           onClick={nextSlide}
-          className="absolute right-3 z-30 bg-white/20 hover:bg-white/40 text-white p-2 rounded-full transition-all"
+          className="absolute right-[-20px] sm:right-[-24px] z-30 bg-white text-[#008ECC] w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-md flex items-center justify-center hover:scale-105 transition-transform"
+          aria-label="Next Slide"
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-6 h-6 mr-4" />
         </button>
 
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex gap-2">
+        {/* Bottom Dash Pagination */}
+        <div className="absolute bottom-6 left-10 sm:left-16 md:left-20 z-30 flex items-center gap-2">
           {slides.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentIndex(index)}
-              className={`h-2 rounded-full transition-all ${
-                currentIndex === index ? 'w-6 bg-[#008ECC]' : 'w-2 bg-gray-500/50'
+              className={`h-2 rounded-full transition-all duration-300 ${
+                currentIndex === index ? 'w-8 bg-white' : 'w-2 bg-white/40'
               }`}
+              aria-label={`Go to slide ${index + 1}`}
             />
           ))}
         </div>
