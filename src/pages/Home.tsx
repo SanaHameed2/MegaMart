@@ -4,6 +4,7 @@ import { fetchProducts, fetchCategories } from '../lib/api';
 import type { Product, Category } from '../types';
 import ProductCard from '../components/ProductCard';
 import { ProductGridSkeleton, ErrorState } from '../components/States';
+import HeroSlider from '../components/HeroSlider'; // 1. Imported HeroSlider
 
 export default function Home() {
   const [deals, setDeals] = useState<Product[] | null>(null);
@@ -31,24 +32,8 @@ export default function Home() {
 
   return (
     <div>
-      <section
-        aria-label="Promotion"
-        style={{
-          background: 'linear-gradient(120deg, var(--color-primary), #123526)',
-          color: '#fff', padding: '56px 20px',
-        }}
-      >
-        <div className="container" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 24 }}>
-          <div style={{ flex: '1 1 320px' }}>
-            <span className="badge badge-sale" style={{ marginBottom: 12, display: 'inline-block' }}>Season sale</span>
-            <h1 style={{ fontSize: 40, color: '#fff', marginBottom: 12 }}>Everyday essentials,<br />priced fair.</h1>
-            <p style={{ opacity: 0.85, marginBottom: 20, maxWidth: 420 }}>
-              From groceries to gadgets — shop MegaMart's curated marketplace with fast delivery.
-            </p>
-            <Link to="/category/electronics" className="btn btn-accent">Shop electronics</Link>
-          </div>
-        </div>
-      </section>
+      {/* 2. Replaced static green section with dynamic HeroSlider */}
+      <HeroSlider />
 
       <section className="container" style={{ padding: '40px 20px' }}>
         <h2 style={{ fontSize: 22, marginBottom: 16 }}>Shop by category</h2>
