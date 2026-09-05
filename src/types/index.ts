@@ -115,8 +115,6 @@ export interface CartLine {
   productId: string;
   quantity: number;
   variantId?: string | null;
-  // Denormalized snapshot for display purposes only.
-  // Real price is always re-verified server-side at checkout.
   name: string;
   price: number;
   image: string | null;
