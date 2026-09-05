@@ -6,9 +6,12 @@ import { useCart } from '../store/cart';
 export const Header: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
-  const cartStore = useCart();
-  const cartItems = cartStore?.items || [];
-  const cartCount = cartItems.reduce((acc, item) => acc + (item?.quantity || 1), 0);
+  
+  // Safe state selector without type issues
+  const cartItems = useCart((state) => state.items) || [];
+  
+  // Explicit inline typing for reduce accumulator and item
+  const cartCount = cartItems.reduce((acc: number, item: { quantity?: number }) => acc + (item?.quantity || 1), 0);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +32,7 @@ export const Header: React.FC = () => {
 
   return (
     <header className="w-full bg-white border-b border-gray-100 font-sans sticky top-0 z-50">
-      {/* 1. Top Utility Bar (Figma Exact) */}
+      {/* Top Utility Bar */}
       <div className="bg-gray-50 text-[11px] text-gray-500 py-1.5 px-4 sm:px-8 border-b border-gray-100">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <span>Welcome to worldwide Megamart!</span>
@@ -47,7 +50,7 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. Main Header Bar */}
+      {/* Main Header Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3.5 flex items-center justify-between gap-6">
         <div className="flex items-center gap-3">
           <button className="p-2 text-[#008ECC] bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
@@ -91,7 +94,7 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. Category Horizontal Scroll Pills */}
+      {/* Category Pills */}
       <div className="border-t border-gray-100 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 flex items-center gap-3 overflow-x-auto py-2 text-xs no-scrollbar">
           <button className="bg-[#008ECC] text-white px-3.5 py-1.5 rounded-full font-semibold flex items-center gap-1 shrink-0">
