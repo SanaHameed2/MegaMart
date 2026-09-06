@@ -7,7 +7,8 @@ import { ProductGridSkeleton, ErrorState } from '../components/States';
 import HeroSlider from '../components/HeroSlider';
 import SmartphoneSection from '../components/SmartphoneSection';
 import TopCategoriesSection from '../components/TopCategoriesSection';
-import TopBrandsSection from '../components/TopBrandsSection'; // 1. Imported TopBrandsSection
+import TopBrandsSection from '../components/TopBrandsSection';
+import DailyEssentialsSection from '../components/DailyEssentialsSection'; // 1. Imported DailyEssentialsSection
 
 export default function Home() {
   const [deals, setDeals] = useState<Product[] | null>(null);
@@ -44,8 +45,11 @@ export default function Home() {
       {/* Top Categories Section */}
       <TopCategoriesSection />
 
-      {/* 2. Added Top Electronics Brands Section */}
+      {/* Top Electronics Brands Section */}
       <TopBrandsSection />
+
+      {/* 2. Added Daily Essentials Section */}
+      <DailyEssentialsSection />
 
       {/* Shop by Category Section */}
       <section className="container" style={{ padding: '20px 20px 40px' }}>
