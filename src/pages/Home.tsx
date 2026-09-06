@@ -5,7 +5,8 @@ import type { Product, Category } from '../types';
 import ProductCard from '../components/ProductCard';
 import { ProductGridSkeleton, ErrorState } from '../components/States';
 import HeroSlider from '../components/HeroSlider';
-import SmartphoneSection from '../components/SmartphoneSection'; // 1. Imported SmartphoneSection
+import SmartphoneSection from '../components/SmartphoneSection';
+import TopCategoriesSection from '../components/TopCategoriesSection'; // 1. Imported TopCategoriesSection
 
 export default function Home() {
   const [deals, setDeals] = useState<Product[] | null>(null);
@@ -36,8 +37,11 @@ export default function Home() {
       {/* Dynamic Hero Slider */}
       <HeroSlider />
 
-      {/* 2. Added Smartphone Deals Section directly below Hero Slider */}
+      {/* Smartphone Deals Section */}
       <SmartphoneSection />
+
+      {/* 2. Added Top Categories Section directly below Smartphone Deals */}
+      <TopCategoriesSection />
 
       {/* Shop by Category Section */}
       <section className="container" style={{ padding: '20px 20px 40px' }}>
