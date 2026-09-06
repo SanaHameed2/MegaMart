@@ -15,7 +15,7 @@ const products: Product[] = [
   {
     id: 1,
     name: 'Galaxy S22 Ultra',
-    image: '/assets/images/s22.png',
+    image: '/assets/images/Galaxy S22 Ultra.png',
     price: 32999,
     originalPrice: 74999,
     discountPercent: 56,
@@ -23,7 +23,7 @@ const products: Product[] = [
   {
     id: 2,
     name: 'Galaxy M13 (4GB | 64 GB )',
-    image: '/assets/images/m13.png',
+    image: '/assets/images/Galaxy S22 Ultra (2).png',
     price: 10499,
     originalPrice: 14999,
     discountPercent: 56,
@@ -31,7 +31,7 @@ const products: Product[] = [
   {
     id: 3,
     name: 'Galaxy M33 (4GB | 64 GB )',
-    image: '/assets/images/m33.png',
+    image: '/assets/images/Galaxy M33 (4GB 64 GB .png',
     price: 16999,
     originalPrice: 24999,
     discountPercent: 56,
@@ -39,7 +39,7 @@ const products: Product[] = [
   {
     id: 4,
     name: 'Galaxy M53 (4GB | 64 GB )',
-    image: '/assets/images/m53.png',
+    image: '/assets/images/Galaxy M53 (.png',
     price: 31999,
     originalPrice: 40999,
     discountPercent: 56,
