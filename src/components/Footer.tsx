@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Phone } from 'lucide-react';
+import { Phone, MessageCircle } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
@@ -29,11 +29,7 @@ export const Footer: React.FC = () => {
               <h3 className="text-[16px] font-semibold text-white">Contact Us</h3>
               
               <div className="flex items-start gap-3">
-                <img 
-                  src="/assets/images/whats-app-outlined-icon.png" 
-                  alt="WhatsApp" 
-                  className="w-5 h-5 mt-0.5 shrink-0 object-contain brightness-0 invert"
-                />
+                <MessageCircle className="w-5 h-5 mt-0.5 shrink-0 text-white" />
                 <div className="flex flex-col text-[14px]">
                   <span className="text-white/80">WhatsApp</span>
                   <a href="https://wa.me/12029182132" className="font-semibold hover:underline">
