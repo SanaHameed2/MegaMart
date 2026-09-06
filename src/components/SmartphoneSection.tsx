@@ -1,4 +1,6 @@
 import React from 'react';
+import { ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface Product {
   id: number;
@@ -47,11 +49,23 @@ const products: Product[] = [
 export const SmartphoneSection: React.FC = () => {
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-8 py-8 font-['HK_Grotesk',sans-serif]">
-      {/* Section Heading: HK Grotesk Bold 24px / Line Height 30px */}
-      <div className="border-b border-gray-200 pb-3 mb-6">
-        <h2 className="text-[24px] leading-[30px] font-bold text-[#666666]">
-          Grab the best deal on <span className="text-[#008ECC]">Smartphones</span>
-        </h2>
+      {/* Section Header with Full Gray Border & Active Blue Underline */}
+      <div className="relative flex items-center justify-between border-b border-gray-200 pb-3 mb-6">
+        <div className="relative">
+          <h2 className="text-[20px] sm:text-[24px] leading-[30px] font-bold text-[#666666]">
+            Grab the best deal on <span className="text-[#008ECC]">Smartphones</span>
+          </h2>
+          {/* Blue Underline specifically matching header text width */}
+          <div className="absolute -bottom-[13px] left-0 right-0 h-[3px] bg-[#008ECC] rounded-full" />
+        </div>
+
+        <Link 
+          to="/category/smartphones" 
+          className="flex items-center gap-1 text-[14px] font-medium text-[#666666] hover:text-[#008ECC] transition-colors"
+        >
+          View All
+          <ChevronRight className="w-4 h-4 text-[#008ECC]" />
+        </Link>
       </div>
 
       {/* Product Grid */}
