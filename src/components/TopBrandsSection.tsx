@@ -60,8 +60,8 @@ const brandCards: BrandCard[] = [
 
 export const TopBrandsSection: React.FC = () => {
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-8 py-8 font-['HK_Grotesk',sans-serif]">
-      {/* Section Header */}
+    <section className="max-w-7xl mx-auto px-4 sm:px-8 py-8 font-sans">
+      {/* Section Header - Exact Figma Style with Blue Underline */}
       <div className="relative flex items-center justify-between border-b border-gray-200 pb-3 mb-6">
         <div className="relative">
           <h2 className="text-[20px] sm:text-[24px] leading-[30px] font-bold text-[#666666]">
@@ -94,30 +94,36 @@ export const TopBrandsSection: React.FC = () => {
               className="absolute right-0 top-0 h-full w-auto object-cover opacity-60 pointer-events-none"
             />
 
-            {/* Left Content */}
-            <div className="flex flex-col justify-between h-full z-10 max-w-[55%]">
-              {/* Badge - Exact Figma Typography */}
-              <span className={`inline-block font-['HK_Grotesk'] text-[14px] font-normal tracking-[0.1em] px-[20px] py-[9px] rounded-[8px] uppercase w-fit ${card.badgeBgColor} ${card.badgeTextColor}`}>
-                {card.badgeText}
-              </span>
+            {/* Left Column Content */}
+            <div className="flex flex-col justify-between h-full z-10 max-w-[50%]">
+              {/* Badge */}
+              <div>
+                <span className={`inline-block font-sans text-[13px] font-normal tracking-[0.1em] px-4 py-1.5 rounded-lg uppercase ${card.badgeBgColor} ${card.badgeTextColor}`}>
+                  {card.badgeText}
+                </span>
+              </div>
 
-              {/* Logo & Discount Text */}
-              <div className="mt-auto">
-                <div className="h-6 mb-2 flex items-center">
-                  <img src={card.logo} alt={card.brandName} className="h-full object-contain" />
+              {/* Logo & Discount Text Stack */}
+              <div className="flex flex-col gap-2">
+                <div className="h-[40px] flex items-center justify-start">
+                  <img
+                    src={card.logo}
+                    alt={card.brandName}
+                    className="max-h-full max-w-[110px] object-contain"
+                  />
                 </div>
-                <p className={`text-[18px] sm:text-[20px] font-bold leading-tight ${card.id === 1 ? 'text-white' : 'text-black'}`}>
+                <p className={`text-[18px] sm:text-[20px] font-bold leading-tight ${card.id === 1 ? 'text-white' : 'text-[#222222]'}`}>
                   {card.discountText}
                 </p>
               </div>
             </div>
 
-            {/* Right Product Image */}
-            <div className="h-full w-[45%] flex items-center justify-end z-10">
+            {/* Right Product Image Container - Pixel Perfect Heights */}
+            <div className="h-full w-[50%] flex items-center justify-end z-10">
               <img
                 src={card.productImage}
                 alt={card.brandName}
-                className="max-h-[90%] w-auto object-contain group-hover:scale-105 transition-transform duration-300"
+                className="h-[175px] w-auto object-contain transition-transform duration-300 group-hover:scale-105"
               />
             </div>
           </Link>
