@@ -33,7 +33,7 @@ const categories: CategoryItem[] = [
   {
     id: 4,
     name: 'Furniture',
-    image: '/assets/images/sofa.png',
+    image: '/assets/images/furniture.png',
     slug: 'furniture',
   },
   {
