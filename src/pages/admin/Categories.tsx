@@ -12,6 +12,7 @@ export default function AdminCategories() {
     const { data } = await supabase.from('categories').select('*').order('sort_order');
     setCategories(data ?? []);
   }
+
   useEffect(() => { load(); }, []);
 
   async function handleCreate(e: React.FormEvent) {
@@ -38,34 +39,59 @@ export default function AdminCategories() {
   }
 
   return (
-    <div>
-      <h1 style={{ fontSize: 22, marginBottom: 20 }}>Categories</h1>
+    <div className="space-y-6">
+      <h1 className="text-xl font-bold text-[var(--color-ink)]">Categories</h1>
 
-      <form onSubmit={handleCreate} className="card" style={{ padding: 20, marginBottom: 24, display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-        <div>
+      {/* Category Creation Form */}
+      <form onSubmit={handleCreate} className="card p-5 flex flex-wrap items-end gap-3">
+        <div className="flex-1 min-w-[200px]">
           <label className="label" htmlFor="cat-name">Name</label>
-          <input id="cat-name" required className="input" value={name} onChange={(e) => setName(e.target.value)} />
+          <input 
+            id="cat-name" 
+            required 
+            className="input" 
+            value={name} 
+            onChange={(e) => setName(e.target.value)} 
+          />
         </div>
-        <div>
+        
+        <div className="flex-1 min-w-[200px]">
           <label className="label" htmlFor="cat-parent">Parent category</label>
-          <select id="cat-parent" className="input" value={parentId} onChange={(e) => setParentId(e.target.value)}>
+          <select 
+            id="cat-parent" 
+            className="input" 
+            value={parentId} 
+            onChange={(e) => setParentId(e.target.value)}
+          >
             <option value="">None (top-level)</option>
-            {categories.filter((c) => !c.parent_id).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {categories.filter((c) => !c.parent_id).map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
           </select>
         </div>
-        <button className="btn btn-primary">Add category</button>
-        {msg && <p style={{ color: 'var(--color-danger)', fontSize: 13 }}>{msg}</p>}
+
+        <button className="btn btn-primary h-[42px] px-5">Add category</button>
+        {msg && <p className="w-full text-xs text-[var(--color-danger)] mt-1">{msg}</p>}
       </form>
 
-      <div style={{ display: 'grid', gap: 8 }}>
+      {/* Category List */}
+      <div className="space-y-2">
         {categories.map((c) => (
-          <div key={c.id} className="card" style={{ padding: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ flex: 1, fontWeight: 600, fontSize: 14, paddingLeft: c.parent_id ? 20 : 0 }}>{c.parent_id ? '— ' : ''}{c.name}</span>
-            <span className="badge" style={{ background: c.is_visible ? '#DCEFE4' : '#F0F0EC', color: c.is_visible ? 'var(--color-primary)' : 'var(--color-ink-soft)' }}>
+          <div key={c.id} className="card p-3.5 flex items-center gap-3">
+            <span className={`flex-1 font-semibold text-sm ${c.parent_id ? 'pl-5 text-[var(--color-ink-soft)]' : 'text-[var(--color-ink)]'}`}>
+              {c.parent_id ? '— ' : ''}{c.name}
+            </span>
+
+            <span className={`badge ${c.is_visible ? 'bg-[#DCEFE4] text-[var(--color-primary)]' : 'bg-[#F0F0EC] text-[var(--color-ink-soft)]'}`}>
               {c.is_visible ? 'Visible' : 'Hidden'}
             </span>
-            <button className="btn btn-outline btn-sm" onClick={() => toggleVisible(c)}>{c.is_visible ? 'Hide' : 'Show'}</button>
-            <button className="btn btn-outline btn-sm" onClick={() => remove(c.id)}>Delete</button>
+
+            <button className="btn btn-outline btn-sm" onClick={() => toggleVisible(c)}>
+              {c.is_visible ? 'Hide' : 'Show'}
+            </button>
+            <button className="btn btn-outline btn-sm hover:border-[var(--color-danger)] hover:text-[var(--color-danger)]" onClick={() => remove(c.id)}>
+              Delete
+            </button>
           </div>
         ))}
       </div>
