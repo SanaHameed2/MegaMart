@@ -1,156 +1,196 @@
-import { useEffect, useState, useCallback } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
-import { fetchProducts, fetchBrands } from '../lib/api';
-import type { ProductFilters } from '../lib/api';
-import type { Product, Brand } from '../types';
+// src/pages/ProductListing.tsx
+import { useState, useEffect, useMemo } from 'react';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
-import { ProductGridSkeleton, EmptyState, ErrorState } from '../components/States';
+import { ProductCardSkeleton } from '../components/ProductCardSkeleton';
+import FilterSidebar from '../components/FilterSidebar';
+import type { FilterState } from '../components/FilterSidebar';
+import { fetchProducts } from '../lib/api';
+import type { Product } from '../types';
 
-const PAGE_SIZE = 12;
+type SortOption = 'featured' | 'price-low' | 'price-high' | 'newest' | 'rating';
+
+const DEFAULT_FILTERS: FilterState = {
+  brands: [],
+  priceRange: 'any',
+  rating: null,
+  inStockOnly: false,
+};
 
 export default function ProductListing() {
   const { slug } = useParams();
   const [searchParams] = useSearchParams();
-  const searchQuery = searchParams.get('q') || undefined;
+  const category = searchParams.get('category') || slug || 'all';
 
-  const [products, setProducts] = useState<Product[] | null>(null);
-  const [total, setTotal] = useState(0);
-  const [brands, setBrands] = useState<Brand[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<SortOption>('featured');
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState<'any' | 'under20' | '20-50' | 'over50'>('any');
-  const [minRating, setMinRating] = useState(0);
-  const [inStockOnly, setInStockOnly] = useState(false);
-  const [sort, setSort] = useState<ProductFilters['sort']>('featured');
-
-  // 🔥 FIX: Brands ko category slug ke hisaab se fetch karein
+  // ========== FETCH PRODUCTS ==========
   useEffect(() => {
-    fetchBrands(slug).then(setBrands).catch(() => {});
-  }, [slug]);  // <- slug dependency add kiya
+    async function load() {
+      setLoading(true);
+      try {
+        const result = await fetchProducts({
+          categorySlug: category !== 'all' ? category : undefined,
+          pageSize: 50,
+        });
 
-  const load = useCallback(async () => {
-    setError(null);
-    let minPrice: number | undefined, maxPrice: number | undefined;
-    if (priceRange === 'under20') maxPrice = 20000;
-    if (priceRange === '20-50') { minPrice = 20000; maxPrice = 50000; }
-    if (priceRange === 'over50') minPrice = 50000;
-
-    try {
-      const res = await fetchProducts({
-        categorySlug: slug,
-        search: searchQuery,
-        brandSlugs: selectedBrands,
-        minPrice, maxPrice,
-        minRating: minRating || undefined,
-        inStockOnly,
-        sort,
-        page,
-        pageSize: PAGE_SIZE,
-      });
-      setProducts(res.products);
-      setTotal(res.total);
-    } catch {
-      setError('Could not load products.');
-      setProducts([]);
+        // Handle api.ts return format { products, total }
+        const productList = (result as any)?.products || result || [];
+        setProducts(Array.isArray(productList) ? productList : []);
+      } catch (err) {
+        console.error('Failed to load products:', err);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
     }
-  }, [slug, searchQuery, selectedBrands, priceRange, minRating, inStockOnly, sort, page]);
+    load();
+  }, [category]);
 
-  useEffect(() => { setPage(1); }, [slug, searchQuery, selectedBrands, priceRange, minRating, inStockOnly, sort]);
-  useEffect(() => { setProducts(null); load(); }, [load]);
+  // ========== DYNAMIC BRANDS (from actual products) ==========
+  const availableBrands = useMemo(() => {
+    const brandSet = new Set<string>();
+    products.forEach((p: any) => {
+      const brandName = p.brands?.name;
+      if (brandName) brandSet.add(brandName);
+    });
+    return Array.from(brandSet).sort();
+  }, [products]);
 
-  function toggleBrand(brandSlug: string) {
-    setSelectedBrands((prev) => prev.includes(brandSlug) ? prev.filter((b) => b !== brandSlug) : [...prev, brandSlug]);
-  }
+  // ========== APPLY FILTERS ==========
+  const filteredProducts = products.filter((product: any) => {
+    // ✅ BRAND FILTER - Use brands relation, not name
+    if (filters.brands.length > 0) {
+      const productBrand = product.brands?.name || '';
+      if (!filters.brands.includes(productBrand)) return false;
+    }
 
-  const heading = searchQuery ? `Results for "${searchQuery}"` : slug ? slug.replace(/-/g, ' ') : 'All products';
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    // ✅ PRICE FILTER
+    if (filters.priceRange !== 'any') {
+      if (filters.priceRange === 'under-20k' && product.price >= 20000) return false;
+      if (filters.priceRange === '20k-50k' && (product.price < 20000 || product.price > 50000)) return false;
+      if (filters.priceRange === 'above-50k' && product.price <= 50000) return false;
+    }
+
+    // ✅ RATING FILTER
+    if (filters.rating && (!product.rating || product.rating < filters.rating)) return false;
+
+    // ✅ STOCK FILTER
+    if (filters.inStockOnly && product.stock <= 0) return false;
+
+    return true;
+  });
+
+  // ========== APPLY SORTING ==========
+  const sortedProducts = [...filteredProducts].sort((a: any, b: any) => {
+    switch (sortBy) {
+      case 'price-low': return a.price - b.price;
+      case 'price-high': return b.price - a.price;
+      case 'rating': return (b.rating || 0) - (a.rating || 0);
+      case 'newest': return (b.created_at || 0) - (a.created_at || 0);
+      default: return 0;
+    }
+  });
+
+  const displayCategory = category === 'all'
+    ? 'All Products'
+    : category.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
   return (
-    <div className="container" style={{ padding: '32px 20px', display: 'grid', gridTemplateColumns: '220px 1fr', gap: 32 }}>
-      <aside aria-label="Filters">
-        <h2 style={{ fontSize: 16, marginBottom: 16, textTransform: 'capitalize' }}>Filters</h2>
+    <div className="min-h-screen bg-[#FAFAF7]">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-        <fieldset style={{ border: 'none', padding: 0, marginBottom: 20 }}>
-          <legend className="label">Brand</legend>
-          {brands.map((b) => (
-            <label key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, marginBottom: 6 }}>
-              <input type="checkbox" checked={selectedBrands.includes(b.slug)} onChange={() => toggleBrand(b.slug)} />
-              {b.name}
-            </label>
-          ))}
-        </fieldset>
+        {/* ========== BREADCRUMB ========== */}
+        <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
+          <Link to="/" className="hover:text-[#008ECC] transition-colors">
+            Home
+          </Link>
+          <ChevronRight size={14} className="text-gray-300" />
+          <span className="text-gray-800 font-medium">{displayCategory}</span>
+        </nav>
 
-        <fieldset style={{ border: 'none', padding: 0, marginBottom: 20 }}>
-          <legend className="label">Price</legend>
-          {[
-            { key: 'any', label: 'Any price' },
-            { key: 'under20', label: 'Under Rs. 20,000' },
-            { key: '20-50', label: 'Rs. 20,000 – 50,000' },
-            { key: 'over50', label: 'Rs. 50,000+' },
-          ].map((opt) => (
-            <label key={opt.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, marginBottom: 6 }}>
-              <input type="radio" name="price" checked={priceRange === opt.key} onChange={() => setPriceRange(opt.key as any)} />
-              {opt.label}
-            </label>
-          ))}
-        </fieldset>
+        <div className="flex flex-col lg:flex-row gap-6">
 
-        <fieldset style={{ border: 'none', padding: 0, marginBottom: 20 }}>
-          <legend className="label">Rating</legend>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-            <input type="checkbox" checked={minRating === 4} onChange={(e) => setMinRating(e.target.checked ? 4 : 0)} />
-            4★ & above
-          </label>
-        </fieldset>
+          {/* ========== SIDEBAR ========== */}
+          <FilterSidebar
+            filters={filters}
+            onChange={setFilters}
+            availableBrands={availableBrands.length > 0 ? availableBrands : undefined}
+          />
 
-        <fieldset style={{ border: 'none', padding: 0 }}>
-          <legend className="label">Availability</legend>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-            <input type="checkbox" checked={inStockOnly} onChange={(e) => setInStockOnly(e.target.checked)} />
-            In stock only
-          </label>
-        </fieldset>
-      </aside>
+          {/* ========== MAIN CONTENT ========== */}
+          <div className="flex-1 min-w-0">
 
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <h1 style={{ fontSize: 24, textTransform: 'capitalize' }}>{heading}</h1>
-            <p style={{ color: 'var(--color-ink-soft)', fontSize: 13 }}>{total} products</p>
-          </div>
-          <div>
-            <label htmlFor="sort" className="visually-hidden">Sort by</label>
-            <select id="sort" className="input" value={sort} onChange={(e) => setSort(e.target.value as ProductFilters['sort'])} style={{ width: 200 }}>
-              <option value="featured">Featured</option>
-              <option value="newest">Newest</option>
-              <option value="price_asc">Price: Low to High</option>
-              <option value="price_desc">Price: High to Low</option>
-              <option value="rating">Rating</option>
-            </select>
-          </div>
-        </div>
+            {/* ========== TOP BAR ========== */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
+                    {displayCategory}
+                  </h1>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {loading
+                      ? 'Loading products...'
+                      : `${sortedProducts.length} ${sortedProducts.length === 1 ? 'product' : 'products'} found`}
+                  </p>
+                </div>
 
-        {error && <ErrorState message={error} onRetry={load} />}
-        {!error && products === null && <ProductGridSkeleton />}
-        {!error && products !== null && products.length === 0 && (
-          <EmptyState title="No products found" message="Try adjusting your filters or search terms." />
-        )}
-        {!error && products !== null && products.length > 0 && (
-          <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
-              {products.map((p) => <ProductCard key={p.id} product={p} />)}
+                {/* Sort Dropdown */}
+                <div className="flex items-center gap-3">
+                  <label className="text-sm text-gray-500 font-medium whitespace-nowrap">
+                    Sort by
+                  </label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as SortOption)}
+                    className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-[#008ECC] focus:ring-2 focus:ring-[#008ECC]/10 min-w-[180px] cursor-pointer transition-all"
+                  >
+                    <option value="featured">Featured</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                    <option value="newest">Newest First</option>
+                    <option value="rating">Top Rated</option>
+                  </select>
+                </div>
+              </div>
             </div>
-            {totalPages > 1 && (
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 32 }}>
-                <button className="btn btn-outline btn-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</button>
-                <span style={{ alignSelf: 'center', fontSize: 13 }}>Page {page} of {totalPages}</span>
-                <button className="btn btn-outline btn-sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</button>
+
+            {/* ========== PRODUCT GRID ========== */}
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                {[...Array(6)].map((_, i) => (
+                  <ProductCardSkeleton key={i} />
+                ))}
+              </div>
+            ) : sortedProducts.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                {sortedProducts.map((product: any) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-20 text-center">
+                <div className="text-7xl mb-6">🔍</div>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">
+                  No products found
+                </h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  Try adjusting your filters or search
+                </p>
+                <button
+                  onClick={() => setFilters(DEFAULT_FILTERS)}
+                  className="bg-[#008ECC] text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-[#0077B6] transition-colors"
+                >
+                  Clear all filters
+                </button>
               </div>
             )}
-          </>
-        )}
+          </div>
+        </div>
       </div>
     </div>
   );
