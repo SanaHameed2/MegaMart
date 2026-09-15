@@ -1,3 +1,4 @@
+// src/components/HeroSlider.tsx
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -12,7 +13,8 @@ interface Slide {
 const slides: Slide[] = [
   {
     id: 1,
-    image: '/assets/images/image 2.png',
+    // ✅ Was: '/assets/images/image 2.png' (missing) → Now: existing image
+    image: '/assets/images/smart-watch.png',
     subtitle: 'Best Deal Online on smart watches',
     title: 'SMART WEARABLE.',
     discount: 'UP to 80% OFF',
@@ -26,7 +28,8 @@ const slides: Slide[] = [
   },
   {
     id: 3,
-    image: '/assets/images/washing machine.png',
+    // ✅ Was: '/assets/images/washing machine.png' (missing) → Now: existing image
+    image: '/assets/images/xiaomi-phone.png',
     subtitle: 'Best Deal Online on home appliances',
     title: 'HOME APPLIANCES.',
     discount: 'UP to 40% OFF',
@@ -53,16 +56,12 @@ export const HeroSlider: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 font-['HK_Grotesk',sans-serif]">
-      {/* Container with overflow-hidden acting as Figma Mask Group */}
       <div className="relative rounded-3xl overflow-hidden bg-[#212844] h-[280px] sm:h-[320px] md:h-[360px] flex items-center shadow-lg">
-        
+
         {/* Figma Layering: Group 16 Vector Circles */}
         <div className="absolute inset-0 pointer-events-none z-0">
-          {/* Top Right Circle Arc Pair (Ellipse 27 & 29) */}
           <div className="absolute -right-20 -top-40 w-[550px] h-[550px] rounded-full border-[1.5px] border-white/10" />
           <div className="absolute -right-28 -top-48 w-[640px] h-[640px] rounded-full border-[1.5px] border-white/10" />
-
-          {/* Bottom Center Circle Pair (Ellipse 28 & 30) */}
           <div className="absolute left-[58%] -bottom-48 -translate-x-1/2 w-[320px] h-[320px] rounded-full border-[1.5px] border-white/10" />
           <div className="absolute left-[58%] -bottom-56 -translate-x-1/2 w-[400px] h-[400px] rounded-full border-[1.5px] border-white/10" />
         </div>
@@ -95,6 +94,10 @@ export const HeroSlider: React.FC = () => {
                 src={slide.image}
                 alt={slide.title}
                 className="max-h-full w-auto object-contain drop-shadow-2xl"
+                onError={(e) => {
+                  // ✅ Fallback if image fails to load
+                  e.currentTarget.src = '/assets/images/iphone.png';
+                }}
               />
             </div>
           </div>
@@ -108,7 +111,7 @@ export const HeroSlider: React.FC = () => {
         >
           <ChevronLeft className="w-6 h-6 ml-4" />
         </button>
-        
+
         <button
           onClick={nextSlide}
           className="absolute right-[-20px] sm:right-[-24px] z-30 bg-white text-[#008ECC] w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-md flex items-center justify-center hover:scale-105 transition-transform"
@@ -130,7 +133,6 @@ export const HeroSlider: React.FC = () => {
             />
           ))}
         </div>
-
       </div>
     </div>
   );
