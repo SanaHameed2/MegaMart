@@ -78,6 +78,7 @@ const httpLink = new HttpLink({
 // ========== CACHE ==========
 const cache = new InMemoryCache({
   // pg_graphql exposes a global `nodeId` on every row (Relay GOI).
+  // Prefer it over `id` so cache refs stay stable across queries.
   dataIdFromObject(responseObject) {
     if ('nodeId' in responseObject && responseObject.nodeId) {
       return `Node:${responseObject.nodeId}`;
@@ -86,6 +87,9 @@ const cache = new InMemoryCache({
   },
 
   // ========== possibleTypes (TOP-LEVEL sibling of typePolicies) ==========
+  // pg_graphql returns most entities behind the `Node` interface.
+  // Declaring its implementations lets Apollo resolve refs across types
+  // (e.g. a Review pointing to a Product stored under `Node:<nodeId>`).
   possibleTypes: {
     Node: [
       'Products',
@@ -107,6 +111,8 @@ const cache = new InMemoryCache({
   typePolicies: {
     Query: {
       fields: {
+        // pg_graphql names collection fields `<table>Collection`.
+        // Every paginated list below merges pages instead of overwriting.
         productsCollection: relayStylePagination(),
         categoriesCollection: relayStylePagination(),
         productImagesCollection: relayStylePagination(),
@@ -119,9 +125,26 @@ const cache = new InMemoryCache({
         couponsCollection: relayStylePagination(),
         profilesCollection: relayStylePagination(),
         wishlistItemsCollection: relayStylePagination(),
-        // NOTE: Confirm exact Query field names via GraphiQL introspection at
-        // <SUPABASE_URL>/graphql/v1 before adding field-specific cache policies
-        // for single-item lookups.
+
+        // ✅ Verified via Thunder Client: `node(nodeId: ID!)` exists and returns
+        // a Relay Global Object. This shortcut tells Apollo to resolve the
+        // reference from cache (by nodeId) instead of hitting the network
+        // every time a node() query runs — as long as the object is already
+        // cached from an earlier collection query.
+        node: {
+          read(_, { args, toReference }) {
+            return toReference({
+              __typename: 'Node',
+              nodeId: args?.nodeId,
+            });
+          },
+        },
+
+        // NOTE: pg_graphql does NOT generate PostGraphile-style single-item
+        // fields like `productBySlug(slug: "...")` or `cartByUser(userId: ...)`.
+        // Confirmed via Thunder Client — those return
+        //   "Unknown field \"productBySlug\" on type Query".
+        // Single-item lookups must go through `<table>Collection(filter: {...})`.
       },
     },
   },
