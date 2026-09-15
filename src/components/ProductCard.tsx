@@ -1,18 +1,26 @@
+// src/components/ProductCard.tsx
 import { Link } from 'react-router-dom';
-import type { Product } from '../types';
+import { Heart, Star } from 'lucide-react';
+import type { Product } from '../lib/normalizers';
 import { useAuth } from '../store/auth';
 import { useCart } from '../store/cart';
 import { useWishlist } from '../store/wishlist';
 
-export default function ProductCard({ product }: { product: Product }) {
+interface ProductCardProps {
+  product: Product;
+}
+
+export default function ProductCard({ product }: ProductCardProps) {
   const { user } = useAuth();
   const addItem = useCart((s) => s.addItem);
   const { toggle, isWishlisted } = useWishlist();
 
-  const image = product.product_images?.sort((a, b) => a.sort_order - b.sort_order)[0]?.url
-    || '/assets/placeholder-product.svg';
-  const discount = product.compare_at_price
-    ? Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100)
+  // ✅ Normalized fields (camelCase from normalizer)
+  const image = product.primaryImage;
+  const discount = product.compareAtPrice
+    ? Math.round(
+        ((product.compareAtPrice - product.price) / product.compareAtPrice) * 100
+      )
     : 0;
   const outOfStock = product.stock <= 0;
   const wishlisted = isWishlisted(product.id);
@@ -21,7 +29,14 @@ export default function ProductCard({ product }: { product: Product }) {
     e.preventDefault();
     if (outOfStock) return;
     await addItem(
-      { productId: product.id, quantity: 1, name: product.name, price: product.price, image, stock: product.stock },
+      {
+        productId: product.id,
+        quantity: 1,
+        name: product.name,
+        price: product.price,
+        image,
+        stock: product.stock,
+      },
       user?.id ?? null
     );
   }
@@ -29,55 +44,113 @@ export default function ProductCard({ product }: { product: Product }) {
   async function handleWishlist(e: React.MouseEvent) {
     e.preventDefault();
     const result = await toggle(
-      { productId: product.id, name: product.name, price: product.price, image, stock: product.stock },
+      {
+        productId: product.id,
+        name: product.name,
+        price: product.price,
+        image,
+        stock: product.stock,
+      },
       user?.id ?? null
     );
     if (result === 'needs-auth') window.location.href = '/login';
   }
 
   return (
-    <Link to={`/products/${product.slug}`} className="card" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
-      <div style={{ position: 'relative', aspectRatio: '1/1', background: '#F3F3EE' }}>
-        <img src={image} alt={product.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        {discount > 0 && <span className="badge badge-sale" style={{ position: 'absolute', top: 10, left: 10 }}>-{discount}%</span>}
+    <Link
+      to={`/products/${product.slug}`}
+      className="card group flex flex-col overflow-hidden relative transition-all duration-200 hover:shadow-[0_8px_24px_rgba(20,35,29,0.15)] hover:-translate-y-1"
+    >
+      {/* IMAGE */}
+      <div className="relative aspect-square bg-[#F3F3EE] overflow-hidden">
+        <img
+          src={image}
+          alt={product.name}
+          loading="lazy"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          onError={(e) => {
+            e.currentTarget.src = '/assets/placeholder-product.svg';
+          }}
+        />
+
+        {/* Discount badge */}
+        {discount > 0 && (
+          <span className="badge badge-sale absolute top-3 left-3 z-10">
+            -{discount}%
+          </span>
+        )}
+
+        {/* Low stock badge */}
+        {product.stock > 0 && product.stock <= 5 && (
+          <span className="badge badge-stock-low absolute bottom-3 left-3 z-10">
+            Only {product.stock} left
+          </span>
+        )}
+
+        {/* Wishlist button */}
         <button
           onClick={handleWishlist}
           aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
           aria-pressed={wishlisted}
+          className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full border-none bg-white/90 backdrop-blur-sm flex items-center justify-center transition-all hover:scale-110 hover:bg-white shadow-sm"
           style={{
-            position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: '50%',
-            border: 'none', background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 16, color: wishlisted ? 'var(--color-danger)' : 'var(--color-ink-soft)',
+            color: wishlisted ? 'var(--color-danger)' : 'var(--color-ink-soft)',
           }}
         >
-          {wishlisted ? '♥' : '♡'}
+          <Heart size={16} fill={wishlisted ? 'currentColor' : 'none'} />
         </button>
+
+        {/* Out of stock overlay */}
         {outOfStock && (
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span className="badge badge-out">Out of stock</span>
+          <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px] flex items-center justify-center z-10">
+            <span className="badge badge-out text-base px-4 py-2 bg-white/90 shadow-lg">
+              Out of Stock
+            </span>
           </div>
         )}
       </div>
-      <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.3, minHeight: 34 }}>{product.name}</span>
-        {product.review_count > 0 && (
-          <span style={{ fontSize: 12, color: 'var(--color-ink-soft)' }}>★ {product.rating.toFixed(1)} ({product.review_count})</span>
+
+      {/* DETAILS */}
+      <div className="p-4 flex flex-col gap-1.5 flex-1 bg-white">
+        <h3 className="text-sm font-semibold leading-tight min-h-[34px] line-clamp-2 text-ink">
+          {product.name}
+        </h3>
+
+        {/* Rating */}
+        {product.reviewCount > 0 && (
+          <span className="text-xs text-ink-soft flex items-center gap-1">
+            <Star size={12} className="fill-[#F4A300] text-[#F4A300]" />
+            {product.rating.toFixed(1)}
+            <span className="text-ink-soft/60">({product.reviewCount})</span>
+          </span>
         )}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 'auto' }}>
-          <span style={{ fontWeight: 700, fontSize: 16 }}>Rs. {product.price.toLocaleString()}</span>
-          {product.compare_at_price && (
-            <span style={{ fontSize: 12, color: 'var(--color-ink-soft)', textDecoration: 'line-through' }}>
-              Rs. {product.compare_at_price.toLocaleString()}
+
+        {/* Price */}
+        <div className="flex items-baseline gap-1.5 mt-auto pt-1">
+          <span className="font-bold text-base text-ink">
+            Rs. {product.price.toLocaleString()}
+          </span>
+          {product.compareAtPrice && (
+            <span className="text-xs text-ink-soft line-through">
+              Rs. {product.compareAtPrice.toLocaleString()}
             </span>
           )}
         </div>
+
+        {/* Add to cart */}
         <button
           onClick={handleAddToCart}
           disabled={outOfStock}
-          className="btn btn-primary btn-sm btn-block"
-          style={{ marginTop: 6 }}
+          className={`
+            btn btn-sm btn-block mt-1.5
+            ${
+              outOfStock
+                ? 'bg-gray-200 text-gray-500 cursor-not-allowed hover:bg-gray-200'
+                : 'btn-primary'
+            }
+          `}
         >
-          {outOfStock ? 'Out of stock' : 'Add to cart'}
+          {outOfStock ? 'Out of Stock' : 'Add to Cart'}
         </button>
       </div>
     </Link>

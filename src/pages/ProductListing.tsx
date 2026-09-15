@@ -1,13 +1,15 @@
 // src/pages/ProductListing.tsx
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
+import { useQuery } from '@apollo/client';
 import ProductCard from '../components/ProductCard';
 import { ProductCardSkeleton } from '../components/ProductCardSkeleton';
 import FilterSidebar from '../components/FilterSidebar';
 import type { FilterState } from '../components/FilterSidebar';
-import { fetchProducts } from '../lib/api';
-import type { Product } from '../types';
+import { GET_PRODUCTS } from '../lib/graphql';
+import { normalizeProductsCollection } from '../lib/normalizers';  // ✅ NEW
+import type { Product } from '../lib/normalizers';                // ✅ NEW
 
 type SortOption = 'featured' | 'price-low' | 'price-high' | 'newest' | 'rating';
 
@@ -23,109 +25,93 @@ export default function ProductListing() {
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category') || slug || 'all';
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>('featured');
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
-  // ========== FETCH PRODUCTS ==========
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      try {
-        const result = await fetchProducts({
-          categorySlug: category !== 'all' ? category : undefined,
-          pageSize: 50,
-        });
+  // ========== GRAPHQL QUERY ==========
+  const { data, loading, error } = useQuery(GET_PRODUCTS, {
+    variables: {
+      filter:
+        category !== 'all'
+          ? { categories: { slug: { eq: category } } }
+          : undefined,
+      first: 50,
+    },
+  });
 
-        // Handle api.ts return format { products, total }
-        const productList = (result as any)?.products || result || [];
-        setProducts(Array.isArray(productList) ? productList : []);
-      } catch (err) {
-        console.error('Failed to load products:', err);
-        setProducts([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, [category]);
+  // ========== NORMALIZE RIGHT AFTER QUERY ==========
+  // ✅ Single source of truth — no display component does this work.
+  const products: Product[] = useMemo(
+    () => normalizeProductsCollection(data?.productsCollection),
+    [data]
+  );
 
-  // ========== DYNAMIC BRANDS (from actual products) ==========
+  // ========== DYNAMIC BRANDS ==========
   const availableBrands = useMemo(() => {
     const brandSet = new Set<string>();
-    products.forEach((p: any) => {
-      const brandName = p.brands?.name;
-      if (brandName) brandSet.add(brandName);
+    products.forEach((p) => {
+      if (p.brands?.name) brandSet.add(p.brands.name);
     });
     return Array.from(brandSet).sort();
   }, [products]);
 
-  // ========== APPLY FILTERS ==========
-  const filteredProducts = products.filter((product: any) => {
-    // ✅ BRAND FILTER - Use brands relation, not name
+  // ========== FILTERS ==========
+  const filteredProducts = products.filter((product) => {
     if (filters.brands.length > 0) {
-      const productBrand = product.brands?.name || '';
-      if (!filters.brands.includes(productBrand)) return false;
+      if (!product.brands?.name || !filters.brands.includes(product.brands.name)) {
+        return false;
+      }
     }
 
-    // ✅ PRICE FILTER
     if (filters.priceRange !== 'any') {
-      if (filters.priceRange === 'under-20k' && product.price >= 20000) return false;
-      if (filters.priceRange === '20k-50k' && (product.price < 20000 || product.price > 50000)) return false;
-      if (filters.priceRange === 'above-50k' && product.price <= 50000) return false;
+      const price = product.price;
+      if (filters.priceRange === 'under-20k' && price >= 20000) return false;
+      if (filters.priceRange === '20k-50k' && (price < 20000 || price > 50000)) return false;
+      if (filters.priceRange === 'above-50k' && price <= 50000) return false;
     }
 
-    // ✅ RATING FILTER
-    if (filters.rating && (!product.rating || product.rating < filters.rating)) return false;
-
-    // ✅ STOCK FILTER
+    if (filters.rating && product.rating < filters.rating) return false;
     if (filters.inStockOnly && product.stock <= 0) return false;
 
     return true;
   });
 
-  // ========== APPLY SORTING ==========
-  const sortedProducts = [...filteredProducts].sort((a: any, b: any) => {
+  // ========== SORTING ==========
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
     switch (sortBy) {
       case 'price-low': return a.price - b.price;
       case 'price-high': return b.price - a.price;
-      case 'rating': return (b.rating || 0) - (a.rating || 0);
-      case 'newest': return (b.created_at || 0) - (a.created_at || 0);
+      case 'rating': return b.rating - a.rating;
+      case 'newest': return 0;
       default: return 0;
     }
   });
 
-  const displayCategory = category === 'all'
-    ? 'All Products'
-    : category.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  const displayCategory =
+    category === 'all'
+      ? 'All Products'
+      : category
+          .split('-')
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(' ');
 
   return (
     <div className="min-h-screen bg-[#FAFAF7]">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
-        {/* ========== BREADCRUMB ========== */}
         <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-          <Link to="/" className="hover:text-[#008ECC] transition-colors">
-            Home
-          </Link>
+          <Link to="/" className="hover:text-[#008ECC] transition-colors">Home</Link>
           <ChevronRight size={14} className="text-gray-300" />
           <span className="text-gray-800 font-medium">{displayCategory}</span>
         </nav>
 
         <div className="flex flex-col lg:flex-row gap-6">
-
-          {/* ========== SIDEBAR ========== */}
           <FilterSidebar
             filters={filters}
             onChange={setFilters}
             availableBrands={availableBrands.length > 0 ? availableBrands : undefined}
           />
 
-          {/* ========== MAIN CONTENT ========== */}
           <div className="flex-1 min-w-0">
-
-            {/* ========== TOP BAR ========== */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
@@ -139,7 +125,6 @@ export default function ProductListing() {
                   </p>
                 </div>
 
-                {/* Sort Dropdown */}
                 <div className="flex items-center gap-3">
                   <label className="text-sm text-gray-500 font-medium whitespace-nowrap">
                     Sort by
@@ -159,28 +144,28 @@ export default function ProductListing() {
               </div>
             </div>
 
-            {/* ========== PRODUCT GRID ========== */}
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
                 {[...Array(6)].map((_, i) => (
                   <ProductCardSkeleton key={i} />
                 ))}
               </div>
+            ) : error ? (
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
+                <p className="text-red-700 font-semibold mb-2">Failed to load products</p>
+                <p className="text-sm text-red-600">{error.message}</p>
+              </div>
             ) : sortedProducts.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                {sortedProducts.map((product: any) => (
+                {sortedProducts.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
               </div>
             ) : (
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-20 text-center">
                 <div className="text-7xl mb-6">🔍</div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">
-                  No products found
-                </h3>
-                <p className="text-sm text-gray-500 mb-6">
-                  Try adjusting your filters or search
-                </p>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">No products found</h3>
+                <p className="text-sm text-gray-500 mb-6">Try adjusting your filters</p>
                 <button
                   onClick={() => setFilters(DEFAULT_FILTERS)}
                   className="bg-[#008ECC] text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-[#0077B6] transition-colors"

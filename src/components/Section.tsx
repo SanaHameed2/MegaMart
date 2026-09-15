@@ -1,4 +1,5 @@
-import { ReactNode } from 'react';
+// src/components/Section.tsx
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
 interface SectionProps {
