@@ -1,3 +1,4 @@
+// src/store/cart.ts
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { CartLine } from '../types';
@@ -19,7 +20,7 @@ function writeGuestCart(lines: CartLine[]) {
 
 export interface CartState {
   lines: CartLine[];
-  items: CartLine[]; // Alias for Header compatibility
+  items: CartLine[];
   loading: boolean;
   hydrate: (userId: string | null) => Promise<void>;
   addItem: (line: CartLine, userId: string | null) => Promise<void>;
