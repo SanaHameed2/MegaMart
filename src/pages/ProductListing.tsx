@@ -7,9 +7,9 @@ import ProductCard from '../components/ProductCard';
 import { ProductCardSkeleton } from '../components/ProductCardSkeleton';
 import FilterSidebar from '../components/FilterSidebar';
 import type { FilterState } from '../components/FilterSidebar';
-import { GET_PRODUCTS } from '../lib/graphql';
-import { normalizeProductsCollection } from '../lib/normalizers';  // ✅ NEW
-import type { Product } from '../lib/normalizers';                // ✅ NEW
+import { GET_PRODUCTS, GET_CATEGORY_ID_BY_SLUG } from '../lib/graphql';
+import { normalizeProductsCollection } from '../lib/normalizers';
+import type { Product } from '../lib/normalizers';
 
 type SortOption = 'featured' | 'price-low' | 'price-high' | 'newest' | 'rating';
 
@@ -28,25 +28,37 @@ export default function ProductListing() {
   const [sortBy, setSortBy] = useState<SortOption>('featured');
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
-  // ========== GRAPHQL QUERY ==========
+  // ✅ STEP 1: Fetch category ID from slug
+  const { data: categoryData, loading: categoryLoading } = useQuery(
+    GET_CATEGORY_ID_BY_SLUG,
+    {
+      variables: { slug: category },
+      skip: category === 'all',
+    }
+  );
+
+  const categoryId =
+    categoryData?.categoriesCollection?.edges?.[0]?.node?.id ?? null;
+
+  // ✅ STEP 2: Fetch products with category_id filter
   const { data, loading, error } = useQuery(GET_PRODUCTS, {
     variables: {
       filter:
-        category !== 'all'
-          ? { categories: { slug: { eq: category } } }
+        categoryId !== null
+          ? { category_id: { eq: categoryId } }
           : undefined,
       first: 50,
     },
+    skip: category !== 'all' && !categoryId,
   });
 
-  // ========== NORMALIZE RIGHT AFTER QUERY ==========
-  // ✅ Single source of truth — no display component does this work.
+  // ✅ Normalize right after query
   const products: Product[] = useMemo(
     () => normalizeProductsCollection(data?.productsCollection),
     [data]
   );
 
-  // ========== DYNAMIC BRANDS ==========
+  // Dynamic brands
   const availableBrands = useMemo(() => {
     const brandSet = new Set<string>();
     products.forEach((p) => {
@@ -55,7 +67,7 @@ export default function ProductListing() {
     return Array.from(brandSet).sort();
   }, [products]);
 
-  // ========== FILTERS ==========
+  // Filters
   const filteredProducts = products.filter((product) => {
     if (filters.brands.length > 0) {
       if (!product.brands?.name || !filters.brands.includes(product.brands.name)) {
@@ -76,7 +88,7 @@ export default function ProductListing() {
     return true;
   });
 
-  // ========== SORTING ==========
+  // Sorting
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     switch (sortBy) {
       case 'price-low': return a.price - b.price;
@@ -95,9 +107,13 @@ export default function ProductListing() {
           .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
           .join(' ');
 
+  const isQueryLoading = loading || categoryLoading;
+
   return (
     <div className="min-h-screen bg-[#FAFAF7]">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        {/* BREADCRUMB */}
         <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
           <Link to="/" className="hover:text-[#008ECC] transition-colors">Home</Link>
           <ChevronRight size={14} className="text-gray-300" />
@@ -105,6 +121,7 @@ export default function ProductListing() {
         </nav>
 
         <div className="flex flex-col lg:flex-row gap-6">
+
           <FilterSidebar
             filters={filters}
             onChange={setFilters}
@@ -112,6 +129,8 @@ export default function ProductListing() {
           />
 
           <div className="flex-1 min-w-0">
+
+            {/* TOP BAR */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
@@ -119,7 +138,7 @@ export default function ProductListing() {
                     {displayCategory}
                   </h1>
                   <p className="text-sm text-gray-500 mt-1">
-                    {loading
+                    {isQueryLoading
                       ? 'Loading products...'
                       : `${sortedProducts.length} ${sortedProducts.length === 1 ? 'product' : 'products'} found`}
                   </p>
@@ -144,7 +163,8 @@ export default function ProductListing() {
               </div>
             </div>
 
-            {loading ? (
+            {/* PRODUCTS */}
+            {isQueryLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
                 {[...Array(6)].map((_, i) => (
                   <ProductCardSkeleton key={i} />

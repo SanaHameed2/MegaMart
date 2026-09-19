@@ -9,6 +9,7 @@ import { gql } from '@apollo/client';
 //   - product_imagesCollection: Collection pattern (one-to-many)
 //   - price, compare_at_price, rating: STRING (Number() needed)
 //   - specifications: JSON string (JSON.parse needed)
+//   - Filter: use `category_id: { eq: <uuid> }` — NOT nested categories
 // ============================================================
 
 export const PRODUCT_CARD_FRAGMENT = gql`
@@ -92,6 +93,21 @@ export const GET_CATEGORIES = gql`
           slug
           parent_id
           sort_order
+        }
+      }
+    }
+  }
+`;
+
+// ✅ Category lookup by slug — needed for category-based product filtering
+export const GET_CATEGORY_ID_BY_SLUG = gql`
+  query GetCategoryIdBySlug($slug: String!) {
+    categoriesCollection(filter: { slug: { eq: $slug } }, first: 1) {
+      edges {
+        node {
+          id
+          name
+          slug
         }
       }
     }
