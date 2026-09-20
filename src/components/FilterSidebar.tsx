@@ -29,7 +29,7 @@ interface FilterSidebarProps {
 export default function FilterSidebar({
   filters,
   onChange,
-  availableBrands = ['Apple', 'Samsung', 'Xiaomi', 'OnePlus', 'Realme'],
+  availableBrands = [], // ✅ CHANGED: empty default (no hardcoded brands)
 }: FilterSidebarProps) {
   // ✅ Safe fallback - crash nahi hoga
   const safeFilters: FilterState = filters ?? DEFAULT_FILTERS;
@@ -78,48 +78,50 @@ export default function FilterSidebar({
           )}
         </div>
 
-        {/* ========== BRAND ========== */}
-        <FilterSection
-          title="Brand"
-          expanded={expandedSections.brand}
-          onToggle={() => toggleSection('brand')}
-        >
-          <div className="space-y-2.5">
-            {availableBrands.map((brand) => (
-              <label
-                key={brand}
-                className="flex items-center gap-3 cursor-pointer group"
-              >
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={safeFilters.brands.includes(brand)}
-                    onChange={() => toggleBrand(brand)}
-                    className="peer sr-only"
-                  />
-                  <div className="w-5 h-5 rounded-md border-2 border-gray-300 peer-checked:border-[#008ECC] peer-checked:bg-[#008ECC] transition-all flex items-center justify-center">
-                    <svg
-                      className="w-3 h-3 text-white opacity-0 peer-checked:opacity-100"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={3}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
+        {/* ========== BRAND (only show if brands available) ========== */}
+        {availableBrands.length > 0 && (
+          <FilterSection
+            title="Brand"
+            expanded={expandedSections.brand}
+            onToggle={() => toggleSection('brand')}
+          >
+            <div className="space-y-2.5">
+              {availableBrands.map((brand) => (
+                <label
+                  key={brand}
+                  className="flex items-center gap-3 cursor-pointer group"
+                >
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={safeFilters.brands.includes(brand)}
+                      onChange={() => toggleBrand(brand)}
+                      className="peer sr-only"
+                    />
+                    <div className="w-5 h-5 rounded-md border-2 border-gray-300 peer-checked:border-[#008ECC] peer-checked:bg-[#008ECC] transition-all flex items-center justify-center">
+                      <svg
+                        className="w-3 h-3 text-white opacity-0 peer-checked:opacity-100"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={3}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    </div>
                   </div>
-                </div>
-                <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
-                  {brand}
-                </span>
-              </label>
-            ))}
-          </div>
-        </FilterSection>
+                  <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
+                    {brand}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </FilterSection>
+        )}
 
         {/* ========== PRICE ========== */}
         <FilterSection

@@ -1,3 +1,4 @@
+// src/components/Header.tsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, ShoppingBag, User, MapPin, Truck, Tag, Menu } from 'lucide-react';
@@ -6,12 +7,15 @@ import { useCart } from '../store/cart';
 export const Header: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
-  
+
   // Safe state selector without type issues
   const cartItems = useCart((state) => state.items) || [];
-  
+
   // Explicit inline typing for reduce accumulator and item
-  const cartCount = cartItems.reduce((acc: number, item: { quantity?: number }) => acc + (item?.quantity || 1), 0);
+  const cartCount = cartItems.reduce(
+    (acc: number, item: { quantity?: number }) => acc + (item?.quantity || 1),
+    0
+  );
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,14 +24,15 @@ export const Header: React.FC = () => {
     }
   };
 
-  const categories = [
-    "Premium Fruits",
-    "Home & Kitchen",
-    "Fashion",
-    "Electronics",
-    "Beauty",
-    "Home Improvement",
-    "Sports, Toys & Luggage"
+  // ✅ Category objects with proper slugs
+  const categories: { name: string; slug: string }[] = [
+    { name: 'Premium Fruits', slug: 'premium-fruits' },
+    { name: 'Home & Kitchen', slug: 'home-kitchen' },
+    { name: 'Fashion', slug: 'fashion' },
+    { name: 'Electronics', slug: 'electronics' },
+    { name: 'Beauty', slug: 'beauty' },
+    { name: 'Home Improvement', slug: 'home-improvement' },
+    { name: 'Sports, Toys & Luggage', slug: 'sports-toys-luggage' },
   ];
 
   return (
@@ -38,7 +43,8 @@ export const Header: React.FC = () => {
           <span>Welcome to worldwide Megamart!</span>
           <div className="flex items-center gap-6">
             <span className="flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-[#008ECC]" /> Deliver to <b className="text-gray-800">423651</b>
+              <MapPin className="w-3.5 h-3.5 text-[#008ECC]" /> Deliver to{' '}
+              <b className="text-gray-800">423651</b>
             </span>
             <span className="flex items-center gap-1">
               <Truck className="w-3.5 h-3.5 text-[#008ECC]" /> Track your order
@@ -97,16 +103,19 @@ export const Header: React.FC = () => {
       {/* Category Pills */}
       <div className="border-t border-gray-100 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 flex items-center gap-3 overflow-x-auto py-2 text-xs no-scrollbar">
-          <button className="bg-[#008ECC] text-white px-3.5 py-1.5 rounded-full font-semibold flex items-center gap-1 shrink-0">
+          <Link
+            to="/category/groceries"
+            className="bg-[#008ECC] text-white px-3.5 py-1.5 rounded-full font-semibold flex items-center gap-1 shrink-0"
+          >
             Groceries <span className="text-[9px]">▼</span>
-          </button>
+          </Link>
           {categories.map((cat) => (
             <Link
-              key={cat}
-              to={`/products?category=${encodeURIComponent(cat)}`}
+              key={cat.slug}
+              to={`/category/${cat.slug}`}
               className="bg-gray-50 hover:bg-[#F3F9FB] text-gray-600 hover:text-[#008ECC] px-3 py-1.5 rounded-full font-medium whitespace-nowrap border border-gray-100 transition-colors"
             >
-              {cat}
+              {cat.name}
             </Link>
           ))}
         </div>
