@@ -1,7 +1,7 @@
 // src/pages/ProductDetail.tsx
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronRight, Minus, Plus, Heart, ShoppingBag, Truck, RotateCcw, Shield, Star } from 'lucide-react';
+import { ChevronRight, Minus, Plus, Heart, ShoppingBag, Truck, RotateCcw, Shield, Star, Check } from 'lucide-react';
 import { useQuery, gql } from '@apollo/client';
 import { fetchProductReviews, submitReview } from '../lib/api';
 import { GET_PRODUCT_BY_SLUG } from '../lib/graphql';
@@ -178,7 +178,7 @@ export default function ProductDetail() {
 
   // ========== HANDLERS ==========
   async function handleAdd() {
-    if (!product || outOfStock) return;
+    if (!product || outOfStock || addedMsg) return;
     await addItem(
       {
         productId: product.id,
@@ -399,15 +399,32 @@ export default function ProductDetail() {
               </div>
             </div>
 
-            {/* ACTIONS */}
+            {/* ACTIONS — with success feedback */}
             <div className="flex flex-col sm:flex-row gap-3 mb-6">
               <button
                 onClick={handleAdd}
-                disabled={outOfStock}
-                className="flex-1 bg-[#008ECC] text-white py-4 rounded-xl font-semibold hover:bg-[#0077B6] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                disabled={outOfStock || addedMsg}
+                className={`flex-1 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 shadow-md ${
+                  outOfStock
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : addedMsg
+                    ? 'bg-[#249B3E] text-white scale-[1.02] cursor-default shadow-lg'
+                    : 'bg-[#008ECC] text-white hover:bg-[#0077B6] hover:shadow-lg'
+                }`}
               >
-                <ShoppingBag size={18} />
-                {outOfStock ? 'Out of Stock' : 'Add to Cart'}
+                {outOfStock ? (
+                  'Out of Stock'
+                ) : addedMsg ? (
+                  <>
+                    <Check size={18} strokeWidth={3} />
+                    Added to Cart
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBag size={18} />
+                    Add to Cart
+                  </>
+                )}
               </button>
               <Link
                 to="/cart"
@@ -424,7 +441,8 @@ export default function ProductDetail() {
 
             {addedMsg && (
               <div className="bg-green-50 border border-green-200 text-[#249B3E] text-sm font-medium px-4 py-3 rounded-xl mb-6 flex items-center gap-2">
-                ✓ Added to your cart successfully!
+                <Check size={16} strokeWidth={3} />
+                Added to your cart successfully!
               </div>
             )}
 

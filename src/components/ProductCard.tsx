@@ -1,6 +1,7 @@
 // src/components/ProductCard.tsx
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, Star } from 'lucide-react';
+import { Heart, Star, Check } from 'lucide-react';
 import type { Product } from '../lib/normalizers';
 import { useAuth } from '../store/auth';
 import { useCart } from '../store/cart';
@@ -15,6 +16,9 @@ export default function ProductCard({ product }: ProductCardProps) {
   const addItem = useCart((s) => s.addItem);
   const { toggle, isWishlisted } = useWishlist();
 
+  // ✅ Track "just added" state for button feedback
+  const [justAdded, setJustAdded] = useState(false);
+
   // ✅ Normalized fields (camelCase from normalizer)
   const image = product.primaryImage;
   const discount = product.compareAtPrice
@@ -27,7 +31,9 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   async function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault();
-    if (outOfStock) return;
+    e.stopPropagation();
+    if (outOfStock || justAdded) return;
+
     await addItem(
       {
         productId: product.id,
@@ -39,10 +45,15 @@ export default function ProductCard({ product }: ProductCardProps) {
       },
       user?.id ?? null
     );
+
+    // ✅ Show success feedback for 2 seconds
+    setJustAdded(true);
+    setTimeout(() => setJustAdded(false), 2000);
   }
 
   async function handleWishlist(e: React.MouseEvent) {
     e.preventDefault();
+    e.stopPropagation();
     const result = await toggle(
       {
         productId: product.id,
@@ -137,20 +148,32 @@ export default function ProductCard({ product }: ProductCardProps) {
           )}
         </div>
 
-        {/* Add to cart */}
+        {/* Add to cart button with feedback */}
         <button
           onClick={handleAddToCart}
-          disabled={outOfStock}
+          disabled={outOfStock || justAdded}
           className={`
             btn btn-sm btn-block mt-1.5
+            transition-all duration-300
             ${
               outOfStock
                 ? 'bg-gray-200 text-gray-500 cursor-not-allowed hover:bg-gray-200'
+                : justAdded
+                ? 'bg-[#249B3E] text-white scale-[1.02] cursor-default'
                 : 'btn-primary'
             }
           `}
         >
-          {outOfStock ? 'Out of Stock' : 'Add to Cart'}
+          {outOfStock ? (
+            'Out of Stock'
+          ) : justAdded ? (
+            <span className="flex items-center justify-center gap-1.5 animate-in fade-in zoom-in duration-300">
+              <Check size={14} strokeWidth={3} />
+              Added
+            </span>
+          ) : (
+            'Add to Cart'
+          )}
         </button>
       </div>
     </Link>
