@@ -1,44 +1,229 @@
+// src/pages/Wishlist.tsx
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Heart, ShoppingBag, Trash2, ArrowLeft, Check } from 'lucide-react';
 import { useAuth } from '../store/auth';
 import { useWishlist } from '../store/wishlist';
 import { useCart } from '../store/cart';
-import { EmptyState } from '../components/States';
+
+const formatPKR = (amount: number) => {
+  // ✅ BUG-10 fix: handle null/NaN/string
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return 'Rs. —';
+  return new Intl.NumberFormat('en-PK', {
+    style: 'currency',
+    currency: 'PKR',
+    maximumFractionDigits: 0,
+  }).format(n);
+};
 
 export default function Wishlist() {
   const { user } = useAuth();
-  const { items, toggle } = useWishlist();
+  const { items, toggle, removeItem } = useWishlist();
   const addItem = useCart((s) => s.addItem);
 
+  // ✅ BUG-05 fix: per-item "processing" state to disable buttons during async
+  const [processing, setProcessing] = useState<string | null>(null);
+  const [movedId, setMovedId] = useState<string | null>(null);
+
+  // ========== EMPTY STATE ==========
   if (items.length === 0) {
     return (
-      <div className="container" style={{ padding: '32px 20px' }}>
-        <EmptyState title="Your wishlist is empty" message="Save products you love to find them here later." actionLabel="Start shopping" actionTo="/" />
+      <div className="min-h-screen bg-[#FAFAF7] py-20">
+        <div className="max-w-2xl mx-auto px-4">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
+            <div className="text-7xl mb-6">💖</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              Your wishlist is empty
+            </h2>
+            <p className="text-gray-500 mb-8">
+              Save products you love to find them here later.
+            </p>
+            <Link
+              to="/"
+              className="inline-block bg-[#008ECC] text-white px-8 py-3.5 rounded-xl font-semibold hover:bg-[#0077B6] transition-colors"
+            >
+              Start Shopping
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
 
+  // ========== HANDLERS ==========
+  async function handleMoveToCart(item: any) {
+    if (processing === item.productId) return; // prevent double-click
+    setProcessing(item.productId);
+
+    try {
+      // Step 1: Add to cart
+      await addItem(
+        {
+          productId: item.productId,
+          quantity: 1,
+          name: item.name,
+          price: item.price,
+          image: item.image,
+          stock: item.stock,
+        },
+        user?.id ?? null
+      );
+
+      // Step 2: ✅ BUG-01 fix: remove from wishlist
+      await removeItem(item.productId, user?.id ?? null);
+
+      // Step 3: Success feedback
+      setMovedId(item.productId);
+      setTimeout(() => setMovedId(null), 2000);
+    } catch (err) {
+      console.error('Move to cart failed:', err);
+    } finally {
+      setProcessing(null);
+    }
+  }
+
+  async function handleRemove(item: any) {
+    if (processing === item.productId) return;
+    setProcessing(item.productId);
+    try {
+      await removeItem(item.productId, user?.id ?? null);
+    } catch (err) {
+      console.error('Remove failed:', err);
+    } finally {
+      setProcessing(null);
+    }
+  }
+
+  // ========== WISHLIST WITH ITEMS ==========
   return (
-    <div className="container" style={{ padding: '32px 20px' }}>
-      <h1 style={{ fontSize: 24, marginBottom: 20 }}>Your wishlist</h1>
-      <div style={{ display: 'grid', gap: 12 }}>
-        {items.map((item) => (
-          <div key={item.productId} className="card" style={{ display: 'flex', gap: 16, padding: 16, alignItems: 'center' }}>
-            <img src={item.image || '/assets/placeholder-product.svg'} alt={item.name} style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 8 }} />
-            <div style={{ flex: 1 }}>
-              <p style={{ fontWeight: 600, fontSize: 14 }}>{item.name}</p>
-              <p style={{ fontSize: 13, color: 'var(--color-ink-soft)' }}>
-                Rs. {item.price.toLocaleString()} {item.stock <= 0 && <span style={{ color: 'var(--color-danger)' }}>· Out of stock</span>}
-              </p>
-            </div>
-            <button
-              className="btn btn-primary btn-sm"
-              disabled={item.stock <= 0}
-              onClick={() => addItem({ productId: item.productId, quantity: 1, name: item.name, price: item.price, image: item.image, stock: item.stock }, user?.id ?? null)}
-            >
-              Move to cart
-            </button>
-            <button className="btn btn-outline btn-sm" onClick={() => toggle(item, user?.id ?? null)}>Remove</button>
+    <div className="min-h-screen bg-[#FAFAF7] py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* BREADCRUMB */}
+        <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
+          <Link to="/" className="hover:text-[#008ECC] transition-colors">
+            Home
+          </Link>
+          <span>/</span>
+          <span className="text-gray-800 font-medium">Wishlist</span>
+        </nav>
+
+        {/* HEADER */}
+        <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-3">
+              <Heart className="text-[#C0392B] fill-[#C0392B]" size={32} />
+              My Wishlist
+            </h1>
+            <p className="text-sm text-gray-500 mt-1" aria-live="polite">
+              {items.length} {items.length === 1 ? 'item' : 'items'} saved
+            </p>
           </div>
-        ))}
+
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm text-[#008ECC] hover:text-[#0077B6] font-semibold transition-colors"
+          >
+            <ArrowLeft size={16} />
+            Continue Shopping
+          </Link>
+        </div>
+
+        {/* WISHLIST ITEMS */}
+        <div className="space-y-4">
+          {items.map((item) => {
+            const outOfStock = item.stock <= 0;
+            const isProcessing = processing === item.productId;
+            const wasMoved = movedId === item.productId;
+
+            return (
+              <div
+                key={item.productId}
+                className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-5 transition-all ${
+                  wasMoved ? 'border-green-200 bg-green-50' : 'hover:shadow-md'
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row gap-4">
+                  {/* IMAGE — ✅ BUG-02 fix: use slug if available, else fallback to productId */}
+                  <Link
+                    to={`/products/${item.slug || item.productId}`}
+                    className="w-full sm:w-24 h-24 bg-[#F3F3EE] rounded-xl overflow-hidden flex-shrink-0"
+                  >
+                    <img
+                      src={item.image || '/assets/placeholder-product.svg'}
+                      alt={item.name}
+                      className="w-full h-full object-contain p-2"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = '/assets/placeholder-product.svg';
+                      }}
+                    />
+                  </Link>
+
+                  {/* DETAILS */}
+                  <div className="flex-1 min-w-0">
+                    <Link
+                      to={`/products/${item.slug || item.productId}`}
+                      className="font-semibold text-gray-800 hover:text-[#008ECC] line-clamp-2 transition-colors"
+                    >
+                      {item.name}
+                    </Link>
+                    <p className="text-lg font-bold text-[#008ECC] mt-2">
+                      {formatPKR(item.price)}
+                    </p>
+                    {outOfStock && (
+                      <p className="text-xs text-[#C0392B] mt-1 bg-red-50 px-2 py-1 rounded inline-block font-medium">
+                        Out of stock
+                      </p>
+                    )}
+                    {wasMoved && (
+                      <p className="text-xs text-[#249B3E] mt-1 bg-green-50 px-2 py-1 rounded inline-flex items-center gap-1 font-medium">
+                        <Check size={12} strokeWidth={3} />
+                        Moved to cart
+                      </p>
+                    )}
+                  </div>
+
+                  {/* ACTIONS */}
+                  <div className="flex sm:flex-col justify-between items-end gap-3 flex-shrink-0">
+                    <button
+                      type="button"
+                      disabled={outOfStock || isProcessing}
+                      onClick={() => handleMoveToCart(item)}
+                      className={`px-4 py-2 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all min-h-[44px] ${
+                        outOfStock
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : isProcessing
+                          ? 'bg-gray-100 text-gray-400 cursor-wait'
+                          : 'bg-[#008ECC] text-white hover:bg-[#0077B6] shadow-sm hover:shadow-md'
+                      }`}
+                    >
+                      <ShoppingBag size={14} />
+                      {outOfStock
+                        ? 'Out of Stock'
+                        : isProcessing
+                        ? 'Moving...'
+                        : 'Move to Cart'}
+                    </button>
+
+                    <button
+                      type="button"
+                      aria-label={`Remove ${item.name} from wishlist`}
+                      disabled={isProcessing}
+                      onClick={() => handleRemove(item)}
+                      className="text-xs text-[#C0392B] hover:text-[#A93226] flex items-center gap-1 transition-colors min-h-[44px] px-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Trash2 size={12} />
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ✅ BUG-11 fix: footer link removed — header link is enough */}
       </div>
     </div>
   );

@@ -252,11 +252,14 @@ export default function ProductDetail() {
                     -{discount}% OFF
                   </span>
                 )}
+
+                {/* WISHLIST BUTTON — ✅ slug added */}
                 <button
                   onClick={async () => {
                     const res = await toggle(
                       {
                         productId: product.id,
+                        slug: product.slug,          // ✅ YEH ADD HUA
                         name: product.name,
                         price: product.price,
                         image: currentImage,
@@ -266,6 +269,8 @@ export default function ProductDetail() {
                     );
                     if (res === 'needs-auth') window.location.href = '/login';
                   }}
+                  aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                  aria-pressed={wishlisted}
                   className={`absolute top-4 right-4 w-11 h-11 rounded-full bg-white shadow-lg flex items-center justify-center transition-all hover:scale-110 ${
                     wishlisted ? 'text-[#C0392B]' : 'text-gray-400'
                   }`}
@@ -280,7 +285,9 @@ export default function ProductDetail() {
                 {images.map((img, i) => (
                   <button
                     key={img.id}
+                    type="button"
                     onClick={() => setActiveImage(i)}
+                    aria-label={`View image ${i + 1}`}
                     className={`w-20 h-20 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 ${
                       i === activeImage
                         ? 'border-[#008ECC] shadow-md'
@@ -289,7 +296,7 @@ export default function ProductDetail() {
                   >
                     <img
                       src={img.url}
-                      alt={`View ${i + 1}`}
+                      alt=""
                       className="w-full h-full object-cover"
                     />
                   </button>
@@ -380,16 +387,23 @@ export default function ProductDetail() {
               </label>
               <div className="inline-flex items-center bg-white border border-gray-200 rounded-xl overflow-hidden">
                 <button
+                  type="button"
+                  aria-label="Decrease quantity"
                   onClick={() => setQty(Math.max(1, qty - 1))}
                   disabled={outOfStock || qty <= 1}
                   className="w-12 h-12 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <Minus size={16} />
                 </button>
-                <span className="w-16 text-center font-semibold text-gray-800">
+                <span
+                  aria-live="polite"
+                  className="w-16 text-center font-semibold text-gray-800"
+                >
                   {qty}
                 </span>
                 <button
+                  type="button"
+                  aria-label="Increase quantity"
                   onClick={() => setQty(Math.min(product.stock, qty + 1))}
                   disabled={outOfStock || qty >= product.stock}
                   className="w-12 h-12 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
@@ -399,9 +413,10 @@ export default function ProductDetail() {
               </div>
             </div>
 
-            {/* ACTIONS — with success feedback */}
+            {/* ACTIONS */}
             <div className="flex flex-col sm:flex-row gap-3 mb-6">
               <button
+                type="button"
                 onClick={handleAdd}
                 disabled={outOfStock || addedMsg}
                 className={`flex-1 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 shadow-md ${
@@ -556,6 +571,7 @@ export default function ProductDetail() {
                       key={n}
                       type="button"
                       onClick={() => setReviewRating(n)}
+                      aria-label={`${n} star${n > 1 ? 's' : ''}`}
                       className="transition-transform hover:scale-110"
                     >
                       <Star

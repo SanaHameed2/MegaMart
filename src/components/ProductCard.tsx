@@ -16,10 +16,10 @@ export default function ProductCard({ product }: ProductCardProps) {
   const addItem = useCart((s) => s.addItem);
   const { toggle, isWishlisted } = useWishlist();
 
-  // ✅ Track "just added" state for button feedback
+  // Track "just added" state for button feedback
   const [justAdded, setJustAdded] = useState(false);
 
-  // ✅ Normalized fields (camelCase from normalizer)
+  // Normalized fields (camelCase from normalizer)
   const image = product.primaryImage;
   const discount = product.compareAtPrice
     ? Math.round(
@@ -46,7 +46,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       user?.id ?? null
     );
 
-    // ✅ Show success feedback for 2 seconds
+    // Show success feedback for 2 seconds
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 2000);
   }
@@ -57,6 +57,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     const result = await toggle(
       {
         productId: product.id,
+        slug: product.slug,          // ✅ YEH ADD HUA
         name: product.name,
         price: product.price,
         image,
@@ -100,6 +101,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Wishlist button */}
         <button
+          type="button"
           onClick={handleWishlist}
           aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
           aria-pressed={wishlisted}
@@ -150,6 +152,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Add to cart button with feedback */}
         <button
+          type="button"
           onClick={handleAddToCart}
           disabled={outOfStock || justAdded}
           className={`
@@ -167,7 +170,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           {outOfStock ? (
             'Out of Stock'
           ) : justAdded ? (
-            <span className="flex items-center justify-center gap-1.5 animate-in fade-in zoom-in duration-300">
+            <span className="flex items-center justify-center gap-1.5">
               <Check size={14} strokeWidth={3} />
               Added
             </span>
