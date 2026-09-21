@@ -4,23 +4,7 @@ import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import { GET_TOP_CATEGORIES } from '../lib/graphql';
-
-// ============================================================
-// Category image mapping (slug → public asset)
-// - All filenames use the exact case as on disk (Linux-safe)
-// - Unmapped slugs fall back to FALLBACK_IMAGE
-// - TODO: migrate to categories.image_url column so new
-//   categories don't require a code deploy
-// ============================================================
-const CATEGORY_IMAGES: Record<string, string> = {
-  'electronics': '/assets/images/electronics.png',
-  'fashion': '/assets/images/cosmetics.png', // temporary — no dedicated fashion image yet
-  'home-kitchen': '/assets/images/furniture.png',
-  'groceries': '/assets/images/fruits.png',
-  'premium-fruits': '/assets/images/fruits.png',
-};
-
-const FALLBACK_IMAGE = '/assets/images/electronics.png';
+import { CATEGORY_IMAGES, FALLBACK_IMAGE } from '../lib/categoryImages';  // ✅ SHARED
 
 export const TopCategoriesSection: React.FC = () => {
   const { data, loading, error, refetch } = useQuery(GET_TOP_CATEGORIES, {
@@ -112,9 +96,11 @@ export const TopCategoriesSection: React.FC = () => {
               >
                 {/* Circle Container */}
                 <div className="w-[110px] h-[110px] sm:w-[120px] sm:h-[120px] rounded-full bg-[#F5F5F5] flex items-center justify-center p-4 transition-all duration-300 group-hover:shadow-md border border-transparent group-hover:border-[#008ECC]">
+                  {/* ✅ BUG-13 fix: alt="" (decorative) — name below announces */}
                   <img
                     src={image}
-                    alt={cat.name}
+                    alt=""
+                    aria-hidden="true"
                     loading="lazy"
                     className="max-h-full max-w-full object-contain group-hover:scale-110 transition-transform duration-300"
                     onError={(e) => {

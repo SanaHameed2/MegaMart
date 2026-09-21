@@ -4,19 +4,7 @@ import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import { GET_CATEGORIES } from '../lib/graphql';
-
-// ============================================================
-// Category-specific images (matched by slug)
-// ============================================================
-const CATEGORY_IMAGES: Record<string, string> = {
-  'vegetables': '/assets/images/veg1.jpg',
-  'fruits': '/assets/images/fruits.jpg',
-  'mango': '/assets/images/mango.jpg',
-  'cherry': '/assets/images/cherry.jpg',
-  'strawberry': '/assets/images/strawberry.png',
-};
-
-const FALLBACK_IMAGE = '/assets/images/daily-essentials.png';
+import { CATEGORY_IMAGES, FALLBACK_IMAGE } from '../lib/categoryImages';  // ✅ SHARED
 
 // Skeleton
 const CategorySkeleton = () => (
@@ -31,7 +19,9 @@ export const DailyEssentialsSection: React.FC = () => {
   // ============================================================
   // Fetch ALL categories (filter client-side to premium-fruits children)
   // ============================================================
-  const { data, loading } = useQuery(GET_CATEGORIES);
+  const { data, loading, error, refetch } = useQuery(GET_CATEGORIES, {
+    notifyOnNetworkStatusChange: true,
+  });
 
   const categories = useMemo(() => {
     const edges = data?.categoriesCollection?.edges ?? [];
@@ -74,6 +64,18 @@ export const DailyEssentialsSection: React.FC = () => {
         {loading ? (
           // Skeletons
           [...Array(4)].map((_, i) => <CategorySkeleton key={i} />)
+        ) : error ? (
+          // Error state with Retry
+          <div className="col-span-full text-center py-8 text-sm text-gray-500">
+            Couldn&apos;t load categories.{' '}
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="text-[#008ECC] underline hover:text-[#0077B6]"
+            >
+              Retry
+            </button>
+          </div>
         ) : categories.length === 0 ? (
           // Empty state
           <div className="col-span-full text-center py-8 text-gray-500 text-sm">
@@ -81,29 +83,28 @@ export const DailyEssentialsSection: React.FC = () => {
           </div>
         ) : (
           // Real subcategories
-          categories.map((category: any, index: number) => {
+          categories.map((category: any) => {
             const image = CATEGORY_IMAGES[category.slug] || FALLBACK_IMAGE;
+            const safeSlug = encodeURIComponent(category.slug);
 
             return (
               <Link
                 key={category.id}
-                to={`/category/${category.slug}`}
-                className="flex flex-col items-center group text-center cursor-pointer"
+                to={`/category/${safeSlug}`}
+                title={category.name}
+                className="flex flex-col items-center group text-center cursor-pointer rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#008ECC] focus-visible:ring-offset-2"
               >
-                {/* Image Card Container */}
-                <div
-                  className={`w-full aspect-square bg-[#F5F5F5] rounded-2xl flex items-center justify-center p-4 transition-all duration-300 group-hover:shadow-md ${
-                    index === 0
-                      ? 'border-2 border-[#008ECC] shadow-sm'
-                      : 'border border-transparent group-hover:border-[#008ECC]/30'
-                  }`}
-                >
+                {/* Image Card Container — ✅ BUG-02 fix: no index===0 highlight */}
+                <div className="w-full aspect-square bg-[#F5F5F5] rounded-2xl flex items-center justify-center p-4 transition-all duration-300 group-hover:shadow-md border border-transparent group-hover:border-[#008ECC]/30">
+                  {/* ✅ BUG-13 fix: alt="" (decorative) — name below announces */}
                   <img
                     src={image}
-                    alt={category.name}
+                    alt=""
+                    aria-hidden="true"
                     loading="lazy"
                     className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
                     onError={(e) => {
+                      e.currentTarget.onerror = null;
                       e.currentTarget.src = FALLBACK_IMAGE;
                     }}
                   />
