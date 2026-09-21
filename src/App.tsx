@@ -1,5 +1,6 @@
+// src/App.tsx
 import { useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './store/auth';
 import { useCart } from './store/cart';
 import { useWishlist } from './store/wishlist';
@@ -23,6 +24,11 @@ import OrderDetail from './pages/account/OrderDetail';
 import Addresses from './pages/account/Addresses';
 import NotFound from './pages/NotFound';
 
+// ✅ NEW PAGES
+import Categories from './pages/Categories';
+import Brands from './pages/Brands';
+import BrandDetail from './pages/BrandDetail';
+
 import AdminLayout from './pages/admin/AdminLayout';
 import Dashboard from './pages/admin/Dashboard';
 import AdminProducts from './pages/admin/Products';
@@ -36,23 +42,47 @@ export default function App() {
   const hydrateCart = useCart((s) => s.hydrate);
   const hydrateWishlist = useWishlist((s) => s.hydrate);
 
-  useEffect(() => { init(); }, [init]);
-  useEffect(() => { hydrateCart(user?.id ?? null); hydrateWishlist(user?.id ?? null); }, [user?.id]);
+  useEffect(() => {
+    init();
+  }, [init]);
+
+  useEffect(() => {
+    hydrateCart(user?.id ?? null);
+    hydrateWishlist(user?.id ?? null);
+  }, [user?.id]);
 
   return (
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
+
+        {/* ========== Product & Category routes ========== */}
         <Route path="/category/:slug" element={<ProductListing />} />
         <Route path="/search" element={<ProductListing />} />
         <Route path="/products/:slug" element={<ProductDetail />} />
+
+        {/* ✅ NEW: Categories & Brands listing */}
+        <Route path="/categories" element={<Categories />} />
+        <Route path="/brands" element={<Brands />} />
+        <Route path="/brand/:slug" element={<BrandDetail />} />
+
+        {/* ✅ NEW: Essentials → redirect to premium-fruits */}
+        <Route
+          path="/essentials"
+          element={<Navigate to="/category/premium-fruits" replace />}
+        />
+
+        {/* ========== Cart & Wishlist ========== */}
         <Route path="/cart" element={<Cart />} />
         <Route path="/wishlist" element={<WishlistPage />} />
+
+        {/* ========== Auth ========== */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
+        {/* ========== Require Auth ========== */}
         <Route element={<RequireAuth />}>
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/order-confirmation/:id" element={<OrderConfirmation />} />
@@ -64,6 +94,7 @@ export default function App() {
           </Route>
         </Route>
 
+        {/* ========== Require Admin ========== */}
         <Route element={<RequireAdmin />}>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<Dashboard />} />
@@ -74,6 +105,7 @@ export default function App() {
           </Route>
         </Route>
 
+        {/* ========== 404 ========== */}
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
