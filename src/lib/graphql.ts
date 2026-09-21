@@ -114,6 +114,27 @@ export const GET_CATEGORY_ID_BY_SLUG = gql`
   }
 `;
 
+// ✅ NEW: Top-level categories only (for homepage Top Categories section)
+// Uses server-side filter for parent_id IS NULL + ordered by sort_order
+export const GET_TOP_CATEGORIES = gql`
+  query GetTopCategories {
+    categoriesCollection(
+      filter: { parent_id: { is: NULL } }
+      orderBy: [{ sort_order: AscNullsLast }, { name: AscNullsLast }]
+    ) {
+      edges {
+        node {
+          id
+          name
+          slug
+          parent_id
+          sort_order
+        }
+      }
+    }
+  }
+`;
+
 export const GET_BRANDS = gql`
   query GetBrands {
     brandsCollection {

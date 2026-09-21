@@ -2,12 +2,12 @@
 import { useState, useMemo } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
-import { useQuery } from '@apollo/client';
+import { useQuery, gql } from '@apollo/client';
 import ProductCard from '../components/ProductCard';
 import { ProductCardSkeleton } from '../components/ProductCardSkeleton';
 import FilterSidebar from '../components/FilterSidebar';
 import type { FilterState } from '../components/FilterSidebar';
-import { GET_PRODUCTS, GET_CATEGORY_ID_BY_SLUG } from '../lib/graphql';
+import { GET_PRODUCTS } from '../lib/graphql';
 import { normalizeProductsCollection } from '../lib/normalizers';
 import type { Product } from '../lib/normalizers';
 
@@ -20,6 +20,33 @@ const DEFAULT_FILTERS: FilterState = {
   inStockOnly: false,
 };
 
+// ============================================================
+// ✅ Category + its children query (for parent categories like
+//    `premium-fruits` that have no direct products, only children)
+// ============================================================
+const GET_CATEGORY_AND_CHILDREN = gql`
+  query GetCategoryAndChildren($slug: String!) {
+    categoriesCollection(filter: { slug: { eq: $slug } }, first: 1) {
+      edges {
+        node {
+          id
+          name
+          slug
+          parent_id
+        }
+      }
+    }
+    allCategories: categoriesCollection {
+      edges {
+        node {
+          id
+          parent_id
+        }
+      }
+    }
+  }
+`;
+
 export default function ProductListing() {
   const { slug } = useParams();
   const [searchParams] = useSearchParams();
@@ -28,37 +55,66 @@ export default function ProductListing() {
   const [sortBy, setSortBy] = useState<SortOption>('featured');
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
-  // ✅ STEP 1: Fetch category ID from slug
+  // ========== STEP 1: Resolve category + its children ==========
   const { data: categoryData, loading: categoryLoading } = useQuery(
-    GET_CATEGORY_ID_BY_SLUG,
+    GET_CATEGORY_AND_CHILDREN,
     {
       variables: { slug: category },
       skip: category === 'all',
     }
   );
 
-  const categoryId =
-    categoryData?.categoriesCollection?.edges?.[0]?.node?.id ?? null;
+  // Extract category ID + all subcategory IDs (recursive one level)
+  const categoryIds = useMemo(() => {
+    if (category === 'all') return null;
 
-  // ✅ STEP 2: Fetch products with category_id filter
+    const categoryNode =
+      categoryData?.categoriesCollection?.edges?.[0]?.node;
+    if (!categoryNode) return null;
+
+    const allCategories =
+      categoryData?.allCategories?.edges?.map((e: any) => e.node) ?? [];
+
+    // Collect: self + direct children
+    const ids = [categoryNode.id];
+
+    const collectChildren = (parentId: string) => {
+      allCategories
+        .filter((c: any) => c.parent_id === parentId)
+        .forEach((child: any) => {
+          ids.push(child.id);
+          collectChildren(child.id); // recursive for nested subcategories
+        });
+    };
+
+    collectChildren(categoryNode.id);
+
+    return ids;
+  }, [categoryData, category]);
+
+  const isCategoryResolved = category === 'all' || categoryIds !== null;
+  const isCategoryMissing =
+    category !== 'all' && !categoryLoading && categoryIds === null;
+
+  // ========== STEP 2: Fetch products with all resolved category IDs ==========
   const { data, loading, error } = useQuery(GET_PRODUCTS, {
     variables: {
       filter:
-        categoryId !== null
-          ? { category_id: { eq: categoryId } }
+        categoryIds !== null
+          ? { category_id: { in: categoryIds } }
           : undefined,
       first: 50,
     },
-    skip: category !== 'all' && !categoryId,
+    skip: !isCategoryResolved,
   });
 
-  // ✅ Normalize right after query
+  // ========== Normalize ==========
   const products: Product[] = useMemo(
     () => normalizeProductsCollection(data?.productsCollection),
     [data]
   );
 
-  // Dynamic brands
+  // ========== Dynamic brands ==========
   const availableBrands = useMemo(() => {
     const brandSet = new Set<string>();
     products.forEach((p) => {
@@ -67,7 +123,7 @@ export default function ProductListing() {
     return Array.from(brandSet).sort();
   }, [products]);
 
-  // Filters
+  // ========== Client-side filters ==========
   const filteredProducts = products.filter((product) => {
     if (filters.brands.length > 0) {
       if (!product.brands?.name || !filters.brands.includes(product.brands.name)) {
@@ -88,7 +144,7 @@ export default function ProductListing() {
     return true;
   });
 
-  // Sorting
+  // ========== Sorting ==========
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     switch (sortBy) {
       case 'price-low': return a.price - b.price;
@@ -107,7 +163,7 @@ export default function ProductListing() {
           .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
           .join(' ');
 
-  const isQueryLoading = loading || categoryLoading;
+  const isQueryLoading = categoryLoading || (loading && isCategoryResolved);
 
   return (
     <div className="min-h-screen bg-[#FAFAF7]">
@@ -115,13 +171,14 @@ export default function ProductListing() {
 
         {/* BREADCRUMB */}
         <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-          <Link to="/" className="hover:text-[#008ECC] transition-colors">Home</Link>
+          <Link to="/" className="hover:text-[#008ECC] transition-colors">
+            Home
+          </Link>
           <ChevronRight size={14} className="text-gray-300" />
           <span className="text-gray-800 font-medium">{displayCategory}</span>
         </nav>
 
         <div className="flex flex-col lg:flex-row gap-6">
-
           <FilterSidebar
             filters={filters}
             onChange={setFilters}
@@ -129,7 +186,6 @@ export default function ProductListing() {
           />
 
           <div className="flex-1 min-w-0">
-
             {/* TOP BAR */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -164,7 +220,23 @@ export default function ProductListing() {
             </div>
 
             {/* PRODUCTS */}
-            {isQueryLoading ? (
+            {isCategoryMissing ? (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-20 text-center">
+                <div className="text-7xl mb-6">🔍</div>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">
+                  Category not found
+                </h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  We couldn't find products for this category.
+                </p>
+                <Link
+                  to="/"
+                  className="inline-block bg-[#008ECC] text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-[#0077B6] transition-colors"
+                >
+                  Back to Home
+                </Link>
+              </div>
+            ) : isQueryLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
                 {[...Array(6)].map((_, i) => (
                   <ProductCardSkeleton key={i} />
@@ -172,7 +244,9 @@ export default function ProductListing() {
               </div>
             ) : error ? (
               <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
-                <p className="text-red-700 font-semibold mb-2">Failed to load products</p>
+                <p className="text-red-700 font-semibold mb-2">
+                  Failed to load products
+                </p>
                 <p className="text-sm text-red-600">{error.message}</p>
               </div>
             ) : sortedProducts.length > 0 ? (
@@ -184,8 +258,12 @@ export default function ProductListing() {
             ) : (
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-20 text-center">
                 <div className="text-7xl mb-6">🔍</div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">No products found</h3>
-                <p className="text-sm text-gray-500 mb-6">Try adjusting your filters</p>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">
+                  No products found
+                </h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  Try adjusting your filters
+                </p>
                 <button
                   onClick={() => setFilters(DEFAULT_FILTERS)}
                   className="bg-[#008ECC] text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-[#0077B6] transition-colors"

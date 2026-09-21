@@ -34,7 +34,6 @@ const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
         `[GraphQL error] Op: ${operation.operationName} | ${message}`,
         { locations, path, code: extensions?.code }
       );
-      // TODO: toast.error(message);
     });
   }
   if (networkError) {
@@ -42,11 +41,10 @@ const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
       `[Network error] Op: ${operation.operationName} | ${networkError.message}`,
       networkError
     );
-    // TODO: toast.error('Network issue — check your connection.');
   }
 });
 
-// ========== AUTH LINK (with try/catch fallback) ==========
+// ========== AUTH LINK ==========
 const authLink = setContext(async (_, { headers }) => {
   let token = SUPABASE_ANON_KEY;
 
@@ -86,10 +84,7 @@ const cache = new InMemoryCache({
     return defaultDataIdFromObject(responseObject);
   },
 
-  // ========== possibleTypes (TOP-LEVEL sibling of typePolicies) ==========
-  // pg_graphql returns most entities behind the `Node` interface.
-  // Declaring its implementations lets Apollo resolve refs across types
-  // (e.g. a Review pointing to a Product stored under `Node:<nodeId>`).
+  // ========== possibleTypes ==========
   possibleTypes: {
     Node: [
       'Products',
@@ -111,26 +106,38 @@ const cache = new InMemoryCache({
   typePolicies: {
     Query: {
       fields: {
-        // pg_graphql names collection fields `<table>Collection`.
-        // Every paginated list below merges pages instead of overwriting.
+        // ---------- Paginated collections ----------
         productsCollection: relayStylePagination(),
-        categoriesCollection: relayStylePagination(),
         productImagesCollection: relayStylePagination(),
         ordersCollection: relayStylePagination(),
         orderItemsCollection: relayStylePagination(),
         cartItemsCollection: relayStylePagination(),
         cartsCollection: relayStylePagination(),
         reviewsCollection: relayStylePagination(),
-        brandsCollection: relayStylePagination(),
         couponsCollection: relayStylePagination(),
         profilesCollection: relayStylePagination(),
         wishlistItemsCollection: relayStylePagination(),
 
-        // ✅ Verified via Thunder Client: `node(nodeId: ID!)` exists and returns
-        // a Relay Global Object. This shortcut tells Apollo to resolve the
-        // reference from cache (by nodeId) instead of hitting the network
-        // every time a node() query runs — as long as the object is already
-        // cached from an earlier collection query.
+        // ---------- Filter-sensitive collections ----------
+        // ✅ CRITICAL: include `filter` + `orderBy` in the cache key.
+        // Without this, Apollo caches the first result of `categoriesCollection`
+        // (e.g. category lookup by slug) and reuses it for other queries like
+        // `{ parent_id: { is: NULL } }` — causing wrong categories/products
+        // to appear across different pages/sections.
+        categoriesCollection: {
+          keyArgs: ['filter', 'orderBy'],
+          merge(_, incoming) {
+            return incoming;
+          },
+        },
+        brandsCollection: {
+          keyArgs: ['filter', 'orderBy'],
+          merge(_, incoming) {
+            return incoming;
+          },
+        },
+
+        // ---------- Node lookup (Relay GOI) ----------
         node: {
           read(_, { args, toReference }) {
             return toReference({
@@ -139,12 +146,6 @@ const cache = new InMemoryCache({
             });
           },
         },
-
-        // NOTE: pg_graphql does NOT generate PostGraphile-style single-item
-        // fields like `productBySlug(slug: "...")` or `cartByUser(userId: ...)`.
-        // Confirmed via Thunder Client — those return
-        //   "Unknown field \"productBySlug\" on type Query".
-        // Single-item lookups must go through `<table>Collection(filter: {...})`.
       },
     },
   },

@@ -1,62 +1,43 @@
-import React from 'react';
+// src/components/TopCategoriesSection.tsx
+import React, { useMemo } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@apollo/client';
+import { GET_TOP_CATEGORIES } from '../lib/graphql';
 
-interface CategoryItem {
-  id: number;
-  name: string;
-  image: string;
-  slug: string;
-  isActive?: boolean;
-}
+// ============================================================
+// Category image mapping (slug → public asset)
+// - All filenames use the exact case as on disk (Linux-safe)
+// - Unmapped slugs fall back to FALLBACK_IMAGE
+// - TODO: migrate to categories.image_url column so new
+//   categories don't require a code deploy
+// ============================================================
+const CATEGORY_IMAGES: Record<string, string> = {
+  'electronics': '/assets/images/electronics.png',
+  'fashion': '/assets/images/cosmetics.png', // temporary — no dedicated fashion image yet
+  'home-kitchen': '/assets/images/furniture.png',
+  'groceries': '/assets/images/fruits.png',
+  'premium-fruits': '/assets/images/fruits.png',
+};
 
-const categories: CategoryItem[] = [
-  {
-    id: 1,
-    name: 'Mobile',
-    image: '/assets/images/Mobile.png',
-    slug: 'mobile',
-    isActive: true,
-  },
-  {
-    id: 2,
-    name: 'Cosmetics',
-    image: '/assets/images/cosmetics.png',
-    slug: 'cosmetics',
-  },
-  {
-    id: 3,
-    name: 'Electronics',
-    image: '/assets/images/electronics.png',
-    slug: 'electronics',
-  },
-  {
-    id: 4,
-    name: 'Furniture',
-    image: '/assets/images/furniture.png',
-    slug: 'furniture',
-  },
-  {
-    id: 5,
-    name: 'Watches',
-    image: '/assets/images/watches.png',
-    slug: 'watches',
-  },
-  {
-    id: 6,
-    name: 'Decor',
-    image: '/assets/images/Decor.png',
-    slug: 'decor',
-  },
-  {
-    id: 7,
-    name: 'Accessories',
-    image: '/assets/images/Accessories.png',
-    slug: 'accessories',
-  },
-];
+const FALLBACK_IMAGE = '/assets/images/electronics.png';
 
 export const TopCategoriesSection: React.FC = () => {
+  const { data, loading, error, refetch } = useQuery(GET_TOP_CATEGORIES, {
+    notifyOnNetworkStatusChange: true,
+  });
+
+  const categories = useMemo(() => {
+    const edges = data?.categoriesCollection?.edges ?? [];
+    return edges
+      .map((e: any) => e?.node)
+      .filter(Boolean)
+      .filter(
+        (c: any) =>
+          c?.slug && (c.parent_id === null || c.parent_id === undefined)
+      );
+  }, [data]);
+
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-8 py-8 font-['HK_Grotesk',sans-serif]">
       {/* Section Header */}
@@ -78,34 +59,82 @@ export const TopCategoriesSection: React.FC = () => {
       </div>
 
       {/* Circular Categories List */}
-      <div className="flex items-center justify-between overflow-x-auto gap-4 py-2 scrollbar-none">
-        {categories.map((cat) => (
-          <Link
-            key={cat.id}
-            to={`/category/${cat.slug}`}
-            className="flex flex-col items-center group min-w-[100px] flex-shrink-0"
+      <div
+        className="flex items-center overflow-x-auto gap-4 py-2"
+        style={{ scrollbarWidth: 'thin' }}
+      >
+        {loading ? (
+          // Skeleton — single role="status" on parent
+          <div
+            className="flex items-center gap-4 w-full"
+            role="status"
+            aria-label="Loading categories"
           >
-            {/* Circle Container */}
-            <div
-              className={`w-[110px] h-[110px] sm:w-[120px] sm:h-[120px] rounded-full bg-[#F5F5F5] flex items-center justify-center p-4 transition-all duration-300 group-hover:shadow-md ${
-                cat.isActive
-                  ? 'border-2 border-[#008ECC] shadow-sm'
-                  : 'border border-transparent hover:border-[#008ECC]'
-              }`}
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={i}
+                className="flex flex-col items-center min-w-[100px] animate-pulse flex-shrink-0"
+              >
+                <div className="w-[110px] h-[110px] sm:w-[120px] sm:h-[120px] rounded-full bg-gray-200" />
+                <div className="mt-3 h-4 bg-gray-200 rounded w-20" />
+              </div>
+            ))}
+          </div>
+        ) : error ? (
+          // Error state with Retry
+          <div className="w-full text-center py-8 text-sm text-gray-500">
+            Couldn&apos;t load categories.{' '}
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="text-[#008ECC] underline hover:text-[#0077B6]"
             >
-              <img
-                src={cat.image}
-                alt={cat.name}
-                className="max-h-full max-w-full object-contain group-hover:scale-110 transition-transform duration-300"
-              />
-            </div>
+              Retry
+            </button>
+          </div>
+        ) : categories.length === 0 ? (
+          // Empty state
+          <div className="w-full text-center py-8 text-gray-500 text-sm">
+            No categories available.
+          </div>
+        ) : (
+          // Real categories
+          categories.map((cat: any) => {
+            const image = CATEGORY_IMAGES[cat.slug] || FALLBACK_IMAGE;
+            const safeSlug = encodeURIComponent(cat.slug);
 
-            {/* Title */}
-            <span className="mt-3 text-[15px] font-medium text-[#333333] group-hover:text-[#008ECC] transition-colors">
-              {cat.name}
-            </span>
-          </Link>
-        ))}
+            return (
+              <Link
+                key={cat.id}
+                to={`/category/${safeSlug}`}
+                title={cat.name}
+                className="flex flex-col items-center group min-w-[100px] flex-shrink-0 cursor-pointer rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#008ECC] focus-visible:ring-offset-2"
+              >
+                {/* Circle Container */}
+                <div className="w-[110px] h-[110px] sm:w-[120px] sm:h-[120px] rounded-full bg-[#F5F5F5] flex items-center justify-center p-4 transition-all duration-300 group-hover:shadow-md border border-transparent group-hover:border-[#008ECC]">
+                  <img
+                    src={image}
+                    alt={cat.name}
+                    loading="lazy"
+                    className="max-h-full max-w-full object-contain group-hover:scale-110 transition-transform duration-300"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = FALLBACK_IMAGE;
+                    }}
+                  />
+                </div>
+
+                {/* Title */}
+                <span
+                  className="mt-3 text-[15px] font-medium text-[#333333] group-hover:text-[#008ECC] transition-colors text-center max-w-[110px] truncate"
+                  title={cat.name}
+                >
+                  {cat.name}
+                </span>
+              </Link>
+            );
+          })
+        )}
       </div>
     </section>
   );
