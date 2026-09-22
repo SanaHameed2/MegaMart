@@ -9,20 +9,20 @@
 // ============================================================
 
 export const CATEGORY_IMAGES: Record<string, string> = {
-  // Top-level
-  'electronics': '/assets/images/electronics.png',
-  'fashion': '/assets/images/cosmetics.png',
-  'home-kitchen': '/assets/images/furniture.png',
-  'groceries': '/assets/images/fruits.png',
-  'beauty': '/assets/images/cosmetics.png',
-  'home-improvement': '/assets/images/Decor.png',
-  'sports-toys-luggage': '/assets/images/Accessories.png',
+  // ---------- Top-level ----------
   'premium-fruits': '/assets/images/fruits.png',
+  'electronics': '/assets/images/Mobile.png',            // ✅ phone (not washing machine)
+  'fashion': '/assets/images/Accessories.png',           // ✅ accessories (necklace)
+  'home-kitchen': '/assets/images/furniture.png',        // ✅ sofa
+  'groceries': '/assets/images/fruits.jpg',              // ✅ fruits
+  'beauty': '/assets/images/cosmetics.png',              // ✅ cosmetics
+  'home-improvement': '/assets/images/Decor.png',        // ✅ plant/decor
+  'sports-toys-luggage': '/assets/images/watches.png',   // ⚠️ watches (temporary — add sports.png later)
 
-  // Children
+  // ---------- Children ----------
   'smartphones': '/assets/images/Mobile.png',
-  'laptops': '/assets/images/electronics.png',
-  'electronics-accessories': '/assets/images/electronics.png',
+  'laptops': '/assets/images/Mobile.png',                // ⚠️ temporary — add laptop.png later
+  'electronics-accessories': '/assets/images/Accessories.png',
   'apparel': '/assets/images/cosmetics.png',
   'vegetables': '/assets/images/veg1.jpg',
   'fruits': '/assets/images/fruits.jpg',
@@ -30,7 +30,8 @@ export const CATEGORY_IMAGES: Record<string, string> = {
   'cherry': '/assets/images/cherry.jpg',
 };
 
-export const FALLBACK_IMAGE = '/assets/images/electronics.png';
+// Neutral fallback that won't look like a specific category
+export const FALLBACK_IMAGE = '/assets/images/fruits.png';
 
 /**
  * Resolve a category image by slug with fallback.
