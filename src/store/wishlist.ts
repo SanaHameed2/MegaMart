@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase';
 // ============================================================
 interface WishlistItem {
   productId: string;
-  slug: string;          // ✅ NEW — for product page link
+  slug: string;
   name: string;
   price: number;
   image: string | null;
@@ -17,10 +17,10 @@ interface WishlistItem {
 interface WishlistState {
   items: WishlistItem[];
   loading: boolean;
-  hydrated: boolean;     // ✅ NEW — to prevent empty-state flash on refresh
+  hydrated: boolean;
   hydrate: (userId: string | null) => Promise<void>;
   toggle: (item: WishlistItem, userId: string | null) => Promise<'added' | 'removed' | 'needs-auth'>;
-  removeItem: (productId: string, userId: string | null) => Promise<void>;  // ✅ NEW
+  removeItem: (productId: string, userId: string | null) => Promise<void>;
   isWishlisted: (productId: string) => boolean;
 }
 
@@ -34,7 +34,6 @@ export const useWishlist = create<WishlistState>((set, get) => ({
 
   // ----------------------------------------------------------
   // hydrate: fetch wishlist + JOIN product data for live price/stock
-  // (so a stale localStorage snapshot never shows old price)
   // ----------------------------------------------------------
   hydrate: async (userId) => {
     if (!userId) {
@@ -71,10 +70,10 @@ export const useWishlist = create<WishlistState>((set, get) => ({
         if (!product) return null;
         return {
           productId: product.id,
-          slug: product.slug,                                    // ✅ live slug
+          slug: product.slug,
           name: product.name,
-          price: Number(product.price) || 0,                      // ✅ live price
-          stock: Number(product.stock) || 0,                      // ✅ live stock
+          price: Number(product.price) || 0,
+          stock: Number(product.stock) || 0,
           image: product.product_images?.[0]?.url ?? null,
         } as WishlistItem;
       })
@@ -92,7 +91,6 @@ export const useWishlist = create<WishlistState>((set, get) => ({
     const isIn = get().items.some((i) => i.productId === item.productId);
 
     if (isIn) {
-      // Remove
       const { error } = await supabase
         .from('wishlist_items')
         .delete()
@@ -108,7 +106,6 @@ export const useWishlist = create<WishlistState>((set, get) => ({
       return 'removed';
     }
 
-    // Add
     const { error } = await supabase
       .from('wishlist_items')
       .insert({ user_id: userId, product_id: item.productId });
@@ -123,7 +120,7 @@ export const useWishlist = create<WishlistState>((set, get) => ({
   },
 
   // ----------------------------------------------------------
-  // ✅ NEW: removeItem — explicit removal (used by "Move to Cart" flow)
+  // removeItem: explicit removal (used by "Move to Cart" flow)
   // ----------------------------------------------------------
   removeItem: async (productId, userId) => {
     if (!userId) return;
@@ -143,7 +140,7 @@ export const useWishlist = create<WishlistState>((set, get) => ({
   },
 
   // ----------------------------------------------------------
-  isWishlisted helper
+  // isWishlisted helper
   // ----------------------------------------------------------
   isWishlisted: (productId) =>
     get().items.some((i) => i.productId === productId),

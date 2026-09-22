@@ -106,8 +106,14 @@ const cache = new InMemoryCache({
   typePolicies: {
     Query: {
       fields: {
-        // ---------- Paginated collections ----------
-        productsCollection: relayStylePagination(),
+        // ---------- Products: paginated + filter-sensitive ----------
+        // ✅ CRITICAL: include `filter` + `orderBy` in the cache key.
+        // Without this, Apollo caches the first result of `productsCollection`
+        // (e.g. smartphones) and reuses it for other category filters
+        // (e.g. groceries, fashion) — causing wrong products to appear.
+        productsCollection: relayStylePagination(['filter', 'orderBy']),
+
+        // ---------- Other paginated collections ----------
         productImagesCollection: relayStylePagination(),
         ordersCollection: relayStylePagination(),
         orderItemsCollection: relayStylePagination(),
@@ -119,11 +125,6 @@ const cache = new InMemoryCache({
         wishlistItemsCollection: relayStylePagination(),
 
         // ---------- Filter-sensitive collections ----------
-        // ✅ CRITICAL: include `filter` + `orderBy` in the cache key.
-        // Without this, Apollo caches the first result of `categoriesCollection`
-        // (e.g. category lookup by slug) and reuses it for other queries like
-        // `{ parent_id: { is: NULL } }` — causing wrong categories/products
-        // to appear across different pages/sections.
         categoriesCollection: {
           keyArgs: ['filter', 'orderBy'],
           merge(_, incoming) {
