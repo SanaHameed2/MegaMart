@@ -1,3 +1,4 @@
+// src/components/Layout.tsx
 import { Outlet, Navigate } from 'react-router-dom';
 import Header from './Header';
 import Footer from './Footer';
@@ -26,13 +27,21 @@ export function RequireAdmin() {
   const { user, profile, loading } = useAuth();
   if (loading) return <FullScreenSpinner />;
   if (!user) return <Navigate to="/login" replace />;
-  if (!profile?.is_admin) return <Navigate to="/" replace />;
+  if (!profile?.is_admin) return <Navigate to="/unauthorized" replace />;
   return <Outlet />;
 }
 
 export function FullScreenSpinner() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', color: 'var(--color-ink-soft)' }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '50vh',
+        color: 'var(--color-ink-soft)',
+      }}
+    >
       Loading…
     </div>
   );

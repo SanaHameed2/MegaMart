@@ -4,12 +4,15 @@ import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft, ArrowRight, ShieldCheck, A
 import { useAuth } from '../store/auth';
 import { useCart } from '../store/cart';
 
-const formatPKR = (amount: number) =>
-  new Intl.NumberFormat('en-PK', {
+const formatPKR = (amount: number) => {
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return 'Rs. —';
+  return new Intl.NumberFormat('en-PK', {
     style: 'currency',
     currency: 'PKR',
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(n);
+};
 
 const SHIPPING_FLAT = 150;
 
@@ -93,7 +96,7 @@ export default function Cart() {
                 >
                   <div className="flex flex-col sm:flex-row gap-4">
                     <Link
-                      to={`/products/${line.productId}`}
+                      to={`/products/${line.slug || line.productId}`}
                       className="w-full sm:w-24 h-24 bg-[#F3F3EE] rounded-xl overflow-hidden flex-shrink-0"
                     >
                       <img
@@ -108,7 +111,7 @@ export default function Cart() {
 
                     <div className="flex-1 min-w-0">
                       <Link
-                        to={`/products/${line.productId}`}
+                        to={`/products/${line.slug || line.productId}`}
                         className="font-semibold text-gray-800 hover:text-[#008ECC] line-clamp-2 transition-colors"
                       >
                         {line.name}

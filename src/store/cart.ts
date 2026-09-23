@@ -63,7 +63,6 @@ export const useCart = create<CartState>((set, get) => ({
     }
     const cartId = await getOrCreateCartId(userId);
 
-    // ✅ UPDATED: fetch `slug` from products
     const { data } = await supabase
       .from('cart_items')
       .select('quantity, variant_id, products(id, name, slug, price, stock, product_images(url, sort_order))')
@@ -71,7 +70,7 @@ export const useCart = create<CartState>((set, get) => ({
 
     const lines: CartLine[] = (data ?? []).map((row: any) => ({
       productId: row.products.id,
-      slug: row.products.slug,             // ✅ NEW
+      slug: row.products.slug,
       quantity: row.quantity,
       variantId: row.variant_id,
       name: row.products.name,

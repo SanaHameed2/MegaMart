@@ -2,9 +2,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 
-// ============================================================
-// Types
-// ============================================================
 interface WishlistItem {
   productId: string;
   slug: string;
@@ -24,17 +21,11 @@ interface WishlistState {
   isWishlisted: (productId: string) => boolean;
 }
 
-// ============================================================
-// Store
-// ============================================================
 export const useWishlist = create<WishlistState>((set, get) => ({
   items: [],
   loading: false,
   hydrated: false,
 
-  // ----------------------------------------------------------
-  // hydrate: fetch wishlist + JOIN product data for live price/stock
-  // ----------------------------------------------------------
   hydrate: async (userId) => {
     if (!userId) {
       set({ items: [], hydrated: true });
@@ -82,9 +73,6 @@ export const useWishlist = create<WishlistState>((set, get) => ({
     set({ items, loading: false, hydrated: true });
   },
 
-  // ----------------------------------------------------------
-  // toggle: add if missing, remove if present
-  // ----------------------------------------------------------
   toggle: async (item, userId) => {
     if (!userId) return 'needs-auth';
 
@@ -119,9 +107,6 @@ export const useWishlist = create<WishlistState>((set, get) => ({
     return 'added';
   },
 
-  // ----------------------------------------------------------
-  // removeItem: explicit removal (used by "Move to Cart" flow)
-  // ----------------------------------------------------------
   removeItem: async (productId, userId) => {
     if (!userId) return;
 
@@ -139,9 +124,6 @@ export const useWishlist = create<WishlistState>((set, get) => ({
     set({ items: get().items.filter((i) => i.productId !== productId) });
   },
 
-  // ----------------------------------------------------------
-  // isWishlisted helper
-  // ----------------------------------------------------------
   isWishlisted: (productId) =>
     get().items.some((i) => i.productId === productId),
 }));

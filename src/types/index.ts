@@ -113,15 +113,20 @@ export interface Review {
   created_at: string;
 }
 
-// ============================================================
-// ✅ UPDATED: CartLine now includes `slug` for correct product
-// page navigation (BUG-01 fix)
-// ============================================================
 export interface CartLine {
   productId: string;
-  slug: string;                    // ✅ NEW
+  slug: string;
   quantity: number;
   variantId?: string | null;
+  name: string;
+  price: number;
+  image: string | null;
+  stock: number;
+}
+
+export interface WishlistItem {
+  productId: string;
+  slug: string;
   name: string;
   price: number;
   image: string | null;

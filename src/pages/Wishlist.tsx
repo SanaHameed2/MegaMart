@@ -7,7 +7,6 @@ import { useWishlist } from '../store/wishlist';
 import { useCart } from '../store/cart';
 
 const formatPKR = (amount: number) => {
-  // ✅ BUG-10 fix: handle null/NaN/string
   const n = Number(amount);
   if (!Number.isFinite(n)) return 'Rs. —';
   return new Intl.NumberFormat('en-PK', {
@@ -22,11 +21,9 @@ export default function Wishlist() {
   const { items, removeItem } = useWishlist();
   const addItem = useCart((s) => s.addItem);
 
-  // ✅ BUG-05 fix: per-item "processing" state to disable buttons during async
   const [processing, setProcessing] = useState<string | null>(null);
   const [movedId, setMovedId] = useState<string | null>(null);
 
-  // ========== EMPTY STATE ==========
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-[#FAFAF7] py-20">
@@ -51,17 +48,15 @@ export default function Wishlist() {
     );
   }
 
-  // ========== HANDLERS ==========
   async function handleMoveToCart(item: any) {
-    if (processing === item.productId) return; // prevent double-click
+    if (processing === item.productId) return;
     setProcessing(item.productId);
 
     try {
-      // Step 1: Add to cart
       await addItem(
         {
           productId: item.productId,
-          slug: item.slug,              // ✅ BUG-01 FIX — YEH ADD KARO
+          slug: item.slug,
           quantity: 1,
           name: item.name,
           price: item.price,
@@ -71,10 +66,8 @@ export default function Wishlist() {
         user?.id ?? null
       );
 
-      // Step 2: ✅ BUG-01 fix: remove from wishlist
       await removeItem(item.productId, user?.id ?? null);
 
-      // Step 3: Success feedback
       setMovedId(item.productId);
       setTimeout(() => setMovedId(null), 2000);
     } catch (err) {
@@ -96,11 +89,9 @@ export default function Wishlist() {
     }
   }
 
-  // ========== WISHLIST WITH ITEMS ==========
   return (
     <div className="min-h-screen bg-[#FAFAF7] py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* BREADCRUMB */}
         <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
           <Link to="/" className="hover:text-[#008ECC] transition-colors">
             Home
@@ -109,7 +100,6 @@ export default function Wishlist() {
           <span className="text-gray-800 font-medium">Wishlist</span>
         </nav>
 
-        {/* HEADER */}
         <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-3">
@@ -130,7 +120,6 @@ export default function Wishlist() {
           </Link>
         </div>
 
-        {/* WISHLIST ITEMS */}
         <div className="space-y-4">
           {items.map((item) => {
             const outOfStock = item.stock <= 0;
@@ -145,7 +134,6 @@ export default function Wishlist() {
                 }`}
               >
                 <div className="flex flex-col sm:flex-row gap-4">
-                  {/* IMAGE — ✅ BUG-02 fix: use slug if available, else fallback to productId */}
                   <Link
                     to={`/products/${item.slug || item.productId}`}
                     className="w-full sm:w-24 h-24 bg-[#F3F3EE] rounded-xl overflow-hidden flex-shrink-0"
@@ -161,7 +149,6 @@ export default function Wishlist() {
                     />
                   </Link>
 
-                  {/* DETAILS */}
                   <div className="flex-1 min-w-0">
                     <Link
                       to={`/products/${item.slug || item.productId}`}
@@ -185,7 +172,6 @@ export default function Wishlist() {
                     )}
                   </div>
 
-                  {/* ACTIONS */}
                   <div className="flex sm:flex-col justify-between items-end gap-3 flex-shrink-0">
                     <button
                       type="button"
@@ -223,8 +209,6 @@ export default function Wishlist() {
             );
           })}
         </div>
-
-        {/* ✅ BUG-11 fix: footer link removed — header link is enough */}
       </div>
     </div>
   );
