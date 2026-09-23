@@ -62,13 +62,16 @@ export const useCart = create<CartState>((set, get) => ({
       return;
     }
     const cartId = await getOrCreateCartId(userId);
+
+    // ✅ UPDATED: fetch `slug` from products
     const { data } = await supabase
       .from('cart_items')
-      .select('quantity, variant_id, products(id, name, price, stock, product_images(url, sort_order))')
+      .select('quantity, variant_id, products(id, name, slug, price, stock, product_images(url, sort_order))')
       .eq('cart_id', cartId);
 
     const lines: CartLine[] = (data ?? []).map((row: any) => ({
       productId: row.products.id,
+      slug: row.products.slug,             // ✅ NEW
       quantity: row.quantity,
       variantId: row.variant_id,
       name: row.products.name,
@@ -85,7 +88,9 @@ export const useCart = create<CartState>((set, get) => ({
       const existing = current.find((l) => l.productId === line.productId);
       const next = existing
         ? current.map((l) =>
-            l.productId === line.productId ? { ...l, quantity: l.quantity + line.quantity } : l
+            l.productId === line.productId
+              ? { ...l, quantity: l.quantity + line.quantity }
+              : l
           )
         : [...current, line];
       writeGuestCart(next);
@@ -126,7 +131,11 @@ export const useCart = create<CartState>((set, get) => ({
     }
     const cartId = await getOrCreateCartId(userId);
     if (quantity <= 0) {
-      await supabase.from('cart_items').delete().eq('cart_id', cartId).eq('product_id', productId);
+      await supabase
+        .from('cart_items')
+        .delete()
+        .eq('cart_id', cartId)
+        .eq('product_id', productId);
     } else {
       await supabase
         .from('cart_items')

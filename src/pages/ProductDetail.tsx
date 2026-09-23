@@ -182,6 +182,7 @@ export default function ProductDetail() {
     await addItem(
       {
         productId: product.id,
+        slug: product.slug,              // ✅ YEH ADD KARO — BUG-01 FIX
         quantity: qty,
         name: product.name,
         price: product.price,
@@ -253,13 +254,13 @@ export default function ProductDetail() {
                   </span>
                 )}
 
-                {/* WISHLIST BUTTON — ✅ slug added */}
+                {/* WISHLIST BUTTON */}
                 <button
                   onClick={async () => {
                     const res = await toggle(
                       {
                         productId: product.id,
-                        slug: product.slug,          // ✅ YEH ADD HUA
+                        slug: product.slug,
                         name: product.name,
                         price: product.price,
                         image: currentImage,

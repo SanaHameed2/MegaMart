@@ -37,6 +37,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     await addItem(
       {
         productId: product.id,
+        slug: product.slug,          // ✅ BUG-01 FIX — YEH ADD HUA
         quantity: 1,
         name: product.name,
         price: product.price,
@@ -57,7 +58,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     const result = await toggle(
       {
         productId: product.id,
-        slug: product.slug,          // ✅ YEH ADD HUA
+        slug: product.slug,          // ✅ Already present
         name: product.name,
         price: product.price,
         image,
