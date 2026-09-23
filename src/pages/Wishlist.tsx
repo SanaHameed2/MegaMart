@@ -19,7 +19,7 @@ const formatPKR = (amount: number) => {
 
 export default function Wishlist() {
   const { user } = useAuth();
-  const { items, toggle, removeItem } = useWishlist();
+  const { items, removeItem } = useWishlist();
   const addItem = useCart((s) => s.addItem);
 
   // ✅ BUG-05 fix: per-item "processing" state to disable buttons during async
