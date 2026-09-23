@@ -1,3 +1,4 @@
+// src/lib/api.ts
 import { supabase } from './supabase';
 import type { Product, Category, Brand, Review } from '../types';
 
@@ -29,27 +30,24 @@ export async function fetchProducts(filters: ProductFilters = {}) {
 
   let query = supabase.from('products').select(PRODUCT_SELECT, { count: 'exact' }).eq('status', 'published');
 
-  // 🔥 FIX: Category + Sub-categories include karein
   if (categorySlug) {
     const { data: category } = await supabase
       .from('categories')
       .select('id')
       .eq('slug', categorySlug)
       .single();
-    
+
     if (category) {
-      // Saari sub-categories fetch karein
       const { data: subCategories } = await supabase
         .from('categories')
         .select('id')
         .eq('parent_id', category.id);
-      
-      // Category IDs ka array banayein (parent + sub-categories)
+
       const categoryIds = [category.id];
       if (subCategories && subCategories.length > 0) {
         categoryIds.push(...subCategories.map(c => c.id));
       }
-      
+
       query = query.in('category_id', categoryIds);
     }
   }
@@ -110,7 +108,6 @@ export async function fetchCategories() {
   return data as Category[];
 }
 
-// 🔥 FIX: Brands mein bhi sub-categories include karein
 export async function fetchBrands(categorySlug?: string) {
   let query = supabase
     .from('products')
@@ -124,19 +121,18 @@ export async function fetchBrands(categorySlug?: string) {
       .select('id')
       .eq('slug', categorySlug)
       .single();
-    
+
     if (category) {
-      // Sub-categories bhi include karein brands ke liye
       const { data: subCategories } = await supabase
         .from('categories')
         .select('id')
         .eq('parent_id', category.id);
-      
+
       const categoryIds = [category.id];
       if (subCategories && subCategories.length > 0) {
         categoryIds.push(...subCategories.map(c => c.id));
       }
-      
+
       query = query.in('category_id', categoryIds);
     }
   }
@@ -203,12 +199,14 @@ export async function fetchMyOrders(userId: string) {
   return data as any[];
 }
 
-export async function fetchOrderById(orderId: string) {
+// ✅ SEC-01 FIX: user_id filter client-side + RLS server-side
+export async function fetchOrderById(orderId: string, userId: string) {
   const { data, error } = await supabase
     .from('orders')
     .select('*, order_items(*)')
     .eq('id', orderId)
-    .single();
+    .eq('user_id', userId)   // ✅ IDOR protection
+    .maybeSingle();
   if (error) return null;
   return data as any;
 }
