@@ -61,6 +61,7 @@ export default function Wishlist() {
       await addItem(
         {
           productId: item.productId,
+          slug: item.slug,              // ✅ BUG-01 FIX — YEH ADD KARO
           quantity: 1,
           name: item.name,
           price: item.price,
