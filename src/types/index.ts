@@ -1,3 +1,5 @@
+// src/types/index.ts
+
 export interface Category {
   id: string;
   name: string;
@@ -111,8 +113,13 @@ export interface Review {
   created_at: string;
 }
 
+// ============================================================
+// ✅ UPDATED: CartLine now includes `slug` for correct product
+// page navigation (BUG-01 fix)
+// ============================================================
 export interface CartLine {
   productId: string;
+  slug: string;                    // ✅ NEW
   quantity: number;
   variantId?: string | null;
   name: string;
