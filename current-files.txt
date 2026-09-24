@@ -1,0 +1,58 @@
+Accessories.png
+app-store.png
+Arrow - Down 2.png
+cart-icon.png
+cherry.jpg
+circle-behind-iphone.png
+circle-behind-realme.png
+circle-behind-xiaomi.png
+circles-behind-smart-watch.png
+cont2.png
+cosmetics.png
+cricket-bat.jpg
+daily-essentials.png
+Decor.png
+delivery-icon.png
+Discount.png
+electronics.png
+face-cream.jpg
+footer-ircle.png
+fruits.jpg
+fruits.png
+furniture.png
+Galaxy M33 (4GB 64 GB .png
+Galaxy M53 (.png
+Galaxy S22 Ultra (2).png
+Galaxy S22 Ultra.png
+google-play.png
+header-ellips.png
+icons8-telegram-app-48.png
+iphone-logo.png
+iphone-phone.png
+iphone.png
+led-light.jpg
+Location.png
+mango.jpg
+MegaMart-footer-logo.png
+MegaMart.png
+menu-icon.png
+mi-xiaomi-logo.png
+Mobile.png
+realme-logo.png
+realme-phone.png
+Rectangle 13.png
+Rectangle 5.png
+Search.png
+slider-arrow.png
+smart-watch.png
+straw.jpg
+strawberry.png
+user.png
+veg1.jpg
+vitamin-c-serum.jpg
+wall-paint.jpg
+watches.png
+whats-app-outlined-icon.png
+xiami.png
+xiaomi-phone.png
+yoga-mat.jpg

@@ -1,0 +1,40 @@
+src\components\Footer.tsx:        src="/assets/images/footer-ircle.png"
+src\components\Footer.tsx:                src="/assets/images/MegaMart-footer-logo.png"
+src\components\Footer.tsx:                    src="/assets/images/app-store.png"
+src\components\Footer.tsx:                    src="/assets/images/google-play.png"
+src\components\HeroSlider.tsx:    // ✅ Was: '/assets/images/image 2.png' (missing) → Now: existing image
+src\components\HeroSlider.tsx:    image: '/assets/images/smart-watch.png',
+src\components\HeroSlider.tsx:    image: '/assets/images/iphone.png',
+src\components\HeroSlider.tsx:    // ✅ Was: '/assets/images/washing machine.png' (missing) → Now: existing image
+src\components\HeroSlider.tsx:    image: '/assets/images/xiaomi-phone.png',
+src\components\HeroSlider.tsx:                  e.currentTarget.src = '/assets/images/iphone.png';
+src\components\TopBrandsSection.tsx:    logo: '/assets/images/iphone-logo.png',
+src\components\TopBrandsSection.tsx:    productImage: '/assets/images/iphone-phone.png',
+src\components\TopBrandsSection.tsx:    bgCircleImage: '/assets/images/circle-behind-iphone.png',
+src\components\TopBrandsSection.tsx:    logo: '/assets/images/mi-xiaomi-logo.png',
+src\components\TopBrandsSection.tsx:    productImage: '/assets/images/xiaomi-phone.png',
+src\components\TopBrandsSection.tsx:    bgCircleImage: '/assets/images/circle-behind-xiaomi.png',
+src\components\TopBrandsSection.tsx:    logo: '/assets/images/realme-logo.png',
+src\components\TopBrandsSection.tsx:    productImage: '/assets/images/Galaxy S22 Ultra.png',
+src\components\TopBrandsSection.tsx:    bgCircleImage: '/assets/images/circle-behind-realme.png',
+src\lib\categoryImages.ts:  'premium-fruits': '/assets/images/fruits.png',
+src\lib\categoryImages.ts:  'electronics': '/assets/images/Mobile.png',            // ✅ phone (not washing machine)
+src\lib\categoryImages.ts:  'fashion': '/assets/images/Accessories.png',           // ✅ accessories (necklace)
+src\lib\categoryImages.ts:  'home-kitchen': '/assets/images/furniture.png',        // ✅ sofa
+src\lib\categoryImages.ts:  'groceries': '/assets/images/fruits.jpg',              // ✅ fruits
+src\lib\categoryImages.ts:  'beauty': '/assets/images/cosmetics.png',              // ✅ cosmetics
+src\lib\categoryImages.ts:  'home-improvement': '/assets/images/Decor.png',        // ✅ plant/decor
+src\lib\categoryImages.ts:  'sports-toys-luggage': '/assets/images/watches.png',   // ⚠️ watches (temporary — add sports.png later)
+src\lib\categoryImages.ts:  'smartphones': '/assets/images/Mobile.png',
+src\lib\categoryImages.ts:  'laptops': '/assets/images/Mobile.png',                // ⚠️ temporary — add laptop.png later
+src\lib\categoryImages.ts:  'electronics-accessories': '/assets/images/Accessories.png',
+src\lib\categoryImages.ts:  'apparel': '/assets/images/cosmetics.png',
+src\lib\categoryImages.ts:  'vegetables': '/assets/images/veg1.jpg',
+src\lib\categoryImages.ts:  'fruits': '/assets/images/fruits.jpg',
+src\lib\categoryImages.ts:  'mango': '/assets/images/mango.jpg',
+src\lib\categoryImages.ts:  'cherry': '/assets/images/cherry.jpg',
+src\lib\categoryImages.ts:export const FALLBACK_IMAGE = '/assets/images/fruits.png';
+src\pages\Brands.tsx:  'apple': '/assets/images/iphone-logo.png',
+src\pages\Brands.tsx:  'xiaomi': '/assets/images/mi-xiaomi-logo.png',
+src\pages\Brands.tsx:  'realme': '/assets/images/realme-logo.png',
+src\pages\Brands.tsx:const FALLBACK_LOGO = '/assets/images/electronics.png';

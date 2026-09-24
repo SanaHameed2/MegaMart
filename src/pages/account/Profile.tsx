@@ -1,5 +1,5 @@
 // src/pages/account/Profile.tsx
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { User, Phone, Mail, Check, Save, Camera } from 'lucide-react';
 import { useAuth } from '../../store/auth';
 import { supabase } from '../../lib/supabase';
@@ -11,16 +11,33 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function validate(): string | null {
+    if (!fullName.trim()) return 'Full name is required.';
+    if (fullName.trim().length < 2) return 'Full name must be at least 2 characters.';
+    if (phone && !/^\+?[\d\s\-()]{7,20}$/.test(phone.trim())) {
+      return 'Phone number format is invalid.';
+    }
+    return null;
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
+
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setSaving(true);
     setError(null);
 
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({ full_name: fullName, phone })
+      .update({ full_name: fullName.trim(), phone: phone.trim() })
       .eq('id', user.id);
 
     if (updateError) {
@@ -35,6 +52,10 @@ export default function Profile() {
     setTimeout(() => setSaved(false), 2500);
   }
 
+  function handleAvatarClick() {
+    fileRef.current?.click();
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -42,13 +63,11 @@ export default function Profile() {
           <User className="text-[#008ECC]" size={28} />
           Profile
         </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Manage your personal information
-        </p>
+        <p className="text-sm text-gray-500 mt-1">Manage your personal information</p>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 lg:p-8">
-        {/* Avatar Section */}
+        {/* Avatar */}
         <div className="flex items-center gap-5 mb-8 pb-8 border-b border-gray-100">
           <div className="relative">
             <div className="w-20 h-20 rounded-full bg-[#008ECC] flex items-center justify-center text-white text-3xl font-bold">
@@ -56,11 +75,19 @@ export default function Profile() {
             </div>
             <button
               type="button"
+              onClick={handleAvatarClick}
               aria-label="Change avatar"
               className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
             >
               <Camera size={14} />
             </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              aria-hidden="true"
+            />
           </div>
           <div>
             <p className="font-bold text-gray-800">{fullName || 'Your Name'}</p>
@@ -68,20 +95,21 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSave} className="max-w-xl space-y-5">
+        <form onSubmit={handleSave} className="max-w-xl space-y-5" noValidate>
           <div>
             <label htmlFor="fullName" className="block text-sm font-semibold text-gray-700 mb-2">
-              Full Name
+              Full Name <span className="text-[#C0392B]">*</span>
             </label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               <input
                 id="fullName"
                 type="text"
+                required
                 value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                onChange={(e) => { setFullName(e.target.value); setError(null); }}
                 placeholder="Enter your full name"
+                aria-invalid={!!error && !fullName.trim()}
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#008ECC] focus:ring-2 focus:ring-[#008ECC]/10 transition-all"
               />
             </div>
@@ -97,7 +125,7 @@ export default function Profile() {
                 id="phone"
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => { setPhone(e.target.value); setError(null); }}
                 placeholder="+92 300 1234567"
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#008ECC] focus:ring-2 focus:ring-[#008ECC]/10 transition-all"
               />
@@ -122,7 +150,7 @@ export default function Profile() {
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-[#C0392B] text-sm px-4 py-3 rounded-xl">
+            <div role="alert" className="bg-red-50 border border-red-200 text-[#C0392B] text-sm px-4 py-3 rounded-xl">
               {error}
             </div>
           )}
@@ -138,7 +166,7 @@ export default function Profile() {
             </button>
 
             {saved && (
-              <span className="flex items-center gap-1.5 text-sm text-[#249B3E] font-semibold">
+              <span role="status" className="flex items-center gap-1.5 text-sm text-[#249B3E] font-semibold">
                 <Check size={16} strokeWidth={3} />
                 Saved successfully
               </span>

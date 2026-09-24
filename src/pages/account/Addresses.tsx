@@ -15,6 +15,16 @@ const EMPTY = {
   country: 'Pakistan',
 };
 
+const COUNTRIES = [
+  'Pakistan',
+  'India',
+  'Bangladesh',
+  'UAE',
+  'Saudi Arabia',
+  'UK',
+  'USA',
+];
+
 export default function Addresses() {
   const { user } = useAuth();
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -23,6 +33,7 @@ export default function Addresses() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   async function load() {
     if (!user) return;
@@ -37,16 +48,52 @@ export default function Addresses() {
   }
   useEffect(() => { load(); }, [user?.id]);
 
+  function validate(): string | null {
+    if (!form.full_name.trim() || form.full_name.trim().length < 2) {
+      return 'Full name is required (min 2 chars).';
+    }
+    if (!/^\+?[\d\s\-()]{7,20}$/.test(form.phone.trim())) {
+      return 'Phone number format is invalid.';
+    }
+    if (!form.line1.trim() || form.line1.trim().length < 5) {
+      return 'Address must be at least 5 characters.';
+    }
+    if (!form.city.trim()) return 'City is required.';
+    if (!form.state.trim()) return 'State is required.';
+    if (!/^\d{4,10}$/.test(form.postal_code.trim())) {
+      return 'Postal code must be 4-10 digits.';
+    }
+    return null;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
+
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setSaving(true);
+    setError(null);
+
+    const payload = {
+      ...form,
+      full_name: form.full_name.trim(),
+      phone: form.phone.trim(),
+      line1: form.line1.trim(),
+      city: form.city.trim(),
+      state: form.state.trim(),
+      postal_code: form.postal_code.trim(),
+    };
 
     if (editingId) {
-      await supabase.from('addresses').update(form).eq('id', editingId);
+      await supabase.from('addresses').update(payload).eq('id', editingId).eq('user_id', user.id);
     } else {
       await supabase.from('addresses').insert({
-        ...form,
+        ...payload,
         user_id: user.id,
         is_default: addresses.length === 0,
       });
@@ -59,22 +106,38 @@ export default function Addresses() {
     load();
   }
 
+  // ✅ BUG-03: atomic RPC
   async function setDefault(id: string) {
     if (!user) return;
-    await supabase.from('addresses').update({ is_default: false }).eq('user_id', user.id);
-    await supabase.from('addresses').update({ is_default: true }).eq('id', id);
+    const { error } = await supabase.rpc('set_default_address', { p_address_id: id });
+    if (error) {
+      setError(error.message);
+      return;
+    }
     load();
   }
 
   async function remove(id: string) {
+    if (!user) return;
     if (!confirm('Delete this address?')) return;
-    await supabase.from('addresses').delete().eq('id', id);
+
+    const wasDefault = addresses.find((a) => a.id === id)?.is_default;
+    await supabase.from('addresses').delete().eq('id', id).eq('user_id', user.id);
+
+    // BUG-04: if default deleted, promote next one
+    if (wasDefault) {
+      const remaining = addresses.filter((a) => a.id !== id);
+      if (remaining.length > 0) {
+        await supabase.from('addresses').update({ is_default: true }).eq('id', remaining[0].id);
+      }
+    }
     load();
   }
 
   function openAdd() {
     setForm(EMPTY);
     setEditingId(null);
+    setError(null);
     setShowForm(true);
   }
 
@@ -89,6 +152,7 @@ export default function Addresses() {
       country: a.country,
     });
     setEditingId(a.id);
+    setError(null);
     setShowForm(true);
   }
 
@@ -120,6 +184,7 @@ export default function Addresses() {
         <form
           onSubmit={handleSubmit}
           className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 lg:p-8"
+          noValidate
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-base font-bold text-gray-800">
@@ -127,7 +192,7 @@ export default function Addresses() {
             </h2>
             <button
               type="button"
-              onClick={() => { setShowForm(false); setEditingId(null); setForm(EMPTY); }}
+              onClick={() => { setShowForm(false); setEditingId(null); setForm(EMPTY); setError(null); }}
               className="text-gray-400 hover:text-gray-600 transition-colors"
               aria-label="Close"
             >
@@ -136,14 +201,34 @@ export default function Addresses() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl">
-            <Field label="Full Name"   value={form.full_name}   onChange={(v) => setForm({ ...form, full_name: v })} />
-            <Field label="Phone"       value={form.phone}       onChange={(v) => setForm({ ...form, phone: v })} />
+            <Field label="Full Name"   value={form.full_name}   onChange={(v) => setForm({ ...form, full_name: v })} full />
+            <Field label="Phone"       type="tel" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
             <Field label="Address"     value={form.line1}       onChange={(v) => setForm({ ...form, line1: v })} full />
             <Field label="City"        value={form.city}        onChange={(v) => setForm({ ...form, city: v })} />
             <Field label="State"       value={form.state}       onChange={(v) => setForm({ ...form, state: v })} />
             <Field label="Postal Code" value={form.postal_code} onChange={(v) => setForm({ ...form, postal_code: v })} />
-            <Field label="Country"     value={form.country}     onChange={(v) => setForm({ ...form, country: v })} />
+            <div>
+              <label htmlFor="country" className="block text-sm font-semibold text-gray-700 mb-2">
+                Country
+              </label>
+              <select
+                id="country"
+                value={form.country}
+                onChange={(e) => setForm({ ...form, country: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-[#008ECC] focus:ring-2 focus:ring-[#008ECC]/10 transition-all cursor-pointer"
+              >
+                {COUNTRIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
           </div>
+
+          {error && (
+            <div role="alert" className="bg-red-50 border border-red-200 text-[#C0392B] text-sm px-4 py-3 rounded-xl mt-6">
+              {error}
+            </div>
+          )}
 
           <div className="flex items-center gap-3 mt-8 pt-6 border-t border-gray-100">
             <button
@@ -155,7 +240,7 @@ export default function Addresses() {
             </button>
             <button
               type="button"
-              onClick={() => { setShowForm(false); setEditingId(null); setForm(EMPTY); }}
+              onClick={() => { setShowForm(false); setEditingId(null); setForm(EMPTY); setError(null); }}
               className="px-6 py-3 rounded-xl font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
             >
               Cancel
@@ -165,7 +250,7 @@ export default function Addresses() {
       )}
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4" aria-busy="true">
           {[...Array(2)].map((_, i) => (
             <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse">
               <div className="h-4 bg-gray-200 rounded w-1/2 mb-3" />
@@ -218,7 +303,7 @@ export default function Addresses() {
 
               <p className="text-sm text-gray-600 leading-relaxed">
                 {a.line1}<br />
-                {a.city}, {a.state} {a.postal_code}<br />
+                {[a.city, a.state, a.postal_code].filter(Boolean).join(', ')}<br />
                 {a.country}
               </p>
               <p className="text-sm text-gray-500 mt-2">{a.phone}</p>
@@ -259,8 +344,8 @@ export default function Addresses() {
 }
 
 function Field({
-  label, value, onChange, full,
-}: { label: string; value: string; onChange: (v: string) => void; full?: boolean }) {
+  label, value, onChange, full, type = 'text',
+}: { label: string; value: string; onChange: (v: string) => void; full?: boolean; type?: string }) {
   const id = label.toLowerCase().replace(/\s+/g, '-');
   return (
     <div className={full ? 'sm:col-span-2' : ''}>
@@ -269,7 +354,7 @@ function Field({
       </label>
       <input
         id={id}
-        type="text"
+        type={type}
         required
         value={value}
         onChange={(e) => onChange(e.target.value)}
