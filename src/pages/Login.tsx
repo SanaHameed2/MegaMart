@@ -5,6 +5,7 @@ import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
 import { useAuth } from '../store/auth';
 import { useCart } from '../store/cart';
 import { useWishlist } from '../store/wishlist';
+import { supabase } from '../lib/supabase';   // ✅ Static import
 
 export default function Login() {
   const navigate = useNavigate();
@@ -34,7 +35,8 @@ export default function Login() {
     }
 
     try {
-      const { data: { session } } = await (await import('../lib/supabase')).supabase.auth.getSession();
+      // ✅ Static supabase client — no more dynamic import
+      const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id;
       if (userId) {
         await mergeGuestCart(userId);

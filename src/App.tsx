@@ -1,40 +1,43 @@
 // src/App.tsx
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './store/auth';
 import { useCart } from './store/cart';
 import { useWishlist } from './store/wishlist';
 
 import Layout, { RequireAuth, RequireAdmin, FullScreenSpinner } from './components/Layout';
-import Home from './pages/Home';
-import ProductListing from './pages/ProductListing';
-import ProductDetail from './pages/ProductDetail';
-import Cart from './pages/Cart';
-import WishlistPage from './pages/Wishlist';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import Checkout from './pages/Checkout';
-import OrderConfirmation from './pages/OrderConfirmation';
-import Account from './pages/Account';
-import Profile from './pages/account/Profile';
-import Orders from './pages/account/Orders';
-import OrderDetail from './pages/account/OrderDetail';
-import Addresses from './pages/account/Addresses';
-import NotFound from './pages/NotFound';
-import Unauthorized from './pages/Unauthorized';
 
-import Categories from './pages/Categories';
-import Brands from './pages/Brands';
-import BrandDetail from './pages/BrandDetail';
+// ============================================================
+// Lazy-loaded pages (code splitting)
+// ============================================================
+const Home = lazy(() => import('./pages/Home'));
+const ProductListing = lazy(() => import('./pages/ProductListing'));
+const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const Cart = lazy(() => import('./pages/Cart'));
+const WishlistPage = lazy(() => import('./pages/Wishlist'));
+const Login = lazy(() => import('./pages/Login'));
+const Signup = lazy(() => import('./pages/Signup'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const Checkout = lazy(() => import('./pages/Checkout'));
+const OrderConfirmation = lazy(() => import('./pages/OrderConfirmation'));
+const Account = lazy(() => import('./pages/Account'));
+const Profile = lazy(() => import('./pages/account/Profile'));
+const Orders = lazy(() => import('./pages/account/Orders'));
+const OrderDetail = lazy(() => import('./pages/account/OrderDetail'));
+const Addresses = lazy(() => import('./pages/account/Addresses'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+const Unauthorized = lazy(() => import('./pages/Unauthorized'));
+const Categories = lazy(() => import('./pages/Categories'));
+const Brands = lazy(() => import('./pages/Brands'));
+const BrandDetail = lazy(() => import('./pages/BrandDetail'));
 
-import AdminLayout from './pages/admin/AdminLayout';
-import Dashboard from './pages/admin/Dashboard';
-import AdminProducts from './pages/admin/Products';
-import AdminCategories from './pages/admin/Categories';
-import AdminOrders from './pages/admin/Orders';
-import AdminCustomers from './pages/admin/Customers';
+const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'));
+const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
+const AdminProducts = lazy(() => import('./pages/admin/Products'));
+const AdminCategories = lazy(() => import('./pages/admin/Categories'));
+const AdminOrders = lazy(() => import('./pages/admin/Orders'));
+const AdminCustomers = lazy(() => import('./pages/admin/Customers'));
 
 export default function App() {
   const init = useAuth((s) => s.init);
@@ -74,54 +77,54 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      <Route element={<Layout />}>
-        <Route path="/" element={<Home />} />
+    <Suspense fallback={<FullScreenSpinner />}>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/category/:slug" element={<ProductListing />} />
+          <Route path="/search" element={<ProductListing />} />
+          <Route path="/products/:slug" element={<ProductDetail />} />
+          <Route path="/categories" element={<Categories />} />
+          <Route path="/brands" element={<Brands />} />
+          <Route path="/brand/:slug" element={<BrandDetail />} />
 
-        <Route path="/category/:slug" element={<ProductListing />} />
-        <Route path="/search" element={<ProductListing />} />
-        <Route path="/products/:slug" element={<ProductDetail />} />
+          <Route
+            path="/essentials"
+            element={<Navigate to="/category/premium-fruits" replace />}
+          />
 
-        <Route path="/categories" element={<Categories />} />
-        <Route path="/brands" element={<Brands />} />
-        <Route path="/brand/:slug" element={<BrandDetail />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/unauthorized" element={<Unauthorized />} />
 
-        <Route
-          path="/essentials"
-          element={<Navigate to="/category/premium-fruits" replace />}
-        />
-
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/unauthorized" element={<Unauthorized />} />
-
-        <Route element={<RequireAuth />}>
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/wishlist" element={<WishlistPage />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/order-confirmation/:id" element={<OrderConfirmation />} />
-          <Route path="/account" element={<Account />}>
-            <Route index element={<Profile />} />
-            <Route path="orders" element={<Orders />} />
-            <Route path="orders/:id" element={<OrderDetail />} />
-            <Route path="addresses" element={<Addresses />} />
+          <Route element={<RequireAuth />}>
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/wishlist" element={<WishlistPage />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/order-confirmation/:id" element={<OrderConfirmation />} />
+            <Route path="/account" element={<Account />}>
+              <Route index element={<Profile />} />
+              <Route path="orders" element={<Orders />} />
+              <Route path="orders/:id" element={<OrderDetail />} />
+              <Route path="addresses" element={<Addresses />} />
+            </Route>
           </Route>
-        </Route>
 
-        <Route element={<RequireAdmin />}>
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="products" element={<AdminProducts />} />
-            <Route path="categories" element={<AdminCategories />} />
-            <Route path="orders" element={<AdminOrders />} />
-            <Route path="customers" element={<AdminCustomers />} />
+          <Route element={<RequireAdmin />}>
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="products" element={<AdminProducts />} />
+              <Route path="categories" element={<AdminCategories />} />
+              <Route path="orders" element={<AdminOrders />} />
+              <Route path="customers" element={<AdminCustomers />} />
+            </Route>
           </Route>
-        </Route>
 
-        <Route path="*" element={<NotFound />} />
-      </Route>
-    </Routes>
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+    </Suspense>
   );
 }
