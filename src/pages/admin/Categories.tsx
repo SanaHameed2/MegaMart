@@ -1,100 +1,173 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/supabase';
-import type { Category } from '../../types';
+// src/pages/admin/Categories.tsx
+import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { ChevronRight, Package } from 'lucide-react';
+import { useQuery } from '@apollo/client';
+import { GET_CATEGORIES } from '../../lib/graphql';
+import { CATEGORY_IMAGES, FALLBACK_IMAGE } from '../../lib/categoryImages';
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  parent_id: string | null;
+  sort_order: number | null;
+}
 
 export default function AdminCategories() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [name, setName] = useState('');
-  const [parentId, setParentId] = useState('');
-  const [msg, setMsg] = useState<string | null>(null);
+  const { data, loading, error, refetch } = useQuery(GET_CATEGORIES, {
+    notifyOnNetworkStatusChange: true,
+  });
 
-  async function load() {
-    const { data } = await supabase.from('categories').select('*').order('sort_order');
-    setCategories(data ?? []);
-  }
+  const { parents, childrenByParent } = useMemo(() => {
+    const edges = data?.categoriesCollection?.edges ?? [];
+    const all: Category[] = edges
+      .map((e: any) => e?.node)
+      .filter(Boolean)
+      .filter((c: any) => c?.slug);
 
-  useEffect(() => { load(); }, []);
+    const parents = all
+      .filter((c) => !c.parent_id)
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    setMsg(null);
-    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const { error } = await supabase.from('categories').insert({
-      name, slug, parent_id: parentId || null, sort_order: categories.length,
-    });
-    if (error) { setMsg(error.message); return; }
-    setName(''); setParentId('');
-    load();
-  }
+    const childrenByParent: Record<string, Category[]> = {};
+    all
+      .filter((c) => c.parent_id)
+      .forEach((c) => {
+        const key = c.parent_id!;
+        if (!childrenByParent[key]) childrenByParent[key] = [];
+        childrenByParent[key].push(c);
+      });
+    Object.values(childrenByParent).forEach((list) =>
+      list.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    );
 
-  async function toggleVisible(c: Category) {
-    await supabase.from('categories').update({ is_visible: !c.is_visible }).eq('id', c.id);
-    load();
-  }
+    return { parents, childrenByParent };
+  }, [data]);
 
-  async function remove(id: string) {
-    if (!confirm('Delete this category? Products in it will become uncategorized.')) return;
-    await supabase.from('categories').delete().eq('id', id);
-    load();
-  }
+  const totalCount = parents.length;
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-bold text-[var(--color-ink)]">Categories</h1>
+    <div className="min-h-screen bg-[#FAFAF7] py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
+          <Link to="/" className="hover:text-[#008ECC] transition-colors">
+            Home
+          </Link>
+          <ChevronRight size={14} className="text-gray-300" />
+          <span className="text-gray-800 font-medium">All Categories</span>
+        </nav>
 
-      {/* Category Creation Form */}
-      <form onSubmit={handleCreate} className="card p-5 flex flex-wrap items-end gap-3">
-        <div className="flex-1 min-w-[200px]">
-          <label className="label" htmlFor="cat-name">Name</label>
-          <input 
-            id="cat-name" 
-            required 
-            className="input" 
-            value={name} 
-            onChange={(e) => setName(e.target.value)} 
-          />
+        <div className="mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
+            Shop by Category
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {loading
+              ? 'Loading categories...'
+              : error
+              ? ''
+              : `${totalCount} ${totalCount === 1 ? 'category' : 'categories'}`}
+          </p>
         </div>
-        
-        <div className="flex-1 min-w-[200px]">
-          <label className="label" htmlFor="cat-parent">Parent category</label>
-          <select 
-            id="cat-parent" 
-            className="input" 
-            value={parentId} 
-            onChange={(e) => setParentId(e.target.value)}
+
+        {loading ? (
+          <div
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5"
+            role="status"
+            aria-label="Loading categories"
           >
-            <option value="">None (top-level)</option>
-            {categories.filter((c) => !c.parent_id).map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="aspect-square bg-gray-200 rounded-2xl mb-3" />
+                <div className="h-4 bg-gray-200 rounded w-3/4" />
+              </div>
             ))}
-          </select>
-        </div>
-
-        <button className="btn btn-primary h-[42px] px-5">Add category</button>
-        {msg && <p className="w-full text-xs text-[var(--color-danger)] mt-1">{msg}</p>}
-      </form>
-
-      {/* Category List */}
-      <div className="space-y-2">
-        {categories.map((c) => (
-          <div key={c.id} className="card p-3.5 flex items-center gap-3">
-            <span className={`flex-1 font-semibold text-sm ${c.parent_id ? 'pl-5 text-[var(--color-ink-soft)]' : 'text-[var(--color-ink)]'}`}>
-              {c.parent_id ? '— ' : ''}{c.name}
-            </span>
-
-            <span className={`badge ${c.is_visible ? 'bg-[#DCEFE4] text-[var(--color-primary)]' : 'bg-[#F0F0EC] text-[var(--color-ink-soft)]'}`}>
-              {c.is_visible ? 'Visible' : 'Hidden'}
-            </span>
-
-            <button className="btn btn-outline btn-sm" onClick={() => toggleVisible(c)}>
-              {c.is_visible ? 'Hide' : 'Show'}
-            </button>
-            <button className="btn btn-outline btn-sm hover:border-[var(--color-danger)] hover:text-[var(--color-danger)]" onClick={() => remove(c.id)}>
-              Delete
+          </div>
+        ) : error ? (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-16 text-center">
+            <p className="text-gray-600 mb-4">Couldn't load categories.</p>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="bg-[#008ECC] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[#0077B6] transition-colors"
+            >
+              Retry
             </button>
           </div>
-        ))}
+        ) : parents.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-16 text-center">
+            <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" aria-hidden="true" />
+            <p className="text-gray-500">No categories available.</p>
+          </div>
+        ) : (
+          <div className="space-y-12">
+            {parents.map((parent) => {
+              const children = childrenByParent[parent.id] ?? [];
+              const parentImage = CATEGORY_IMAGES[parent.slug] || FALLBACK_IMAGE;
+
+              return (
+                <section key={parent.id}>
+                  <div className="flex items-center justify-between mb-5 pb-3 border-b border-gray-200">
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-800">
+                      {parent.name}
+                    </h2>
+                    <Link
+                      to={`/category/${encodeURIComponent(parent.slug)}`}
+                      className="text-sm text-[#008ECC] hover:text-[#0077B6] font-semibold inline-flex items-center gap-1 transition-colors"
+                    >
+                      View All
+                      <ChevronRight size={14} />
+                    </Link>
+                  </div>
+
+                  {children.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+                      {children.map((child) => {
+                        const image = CATEGORY_IMAGES[child.slug] || FALLBACK_IMAGE;
+                        return (
+                          <CategoryCard key={child.id} category={child} image={image} />
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+                      <CategoryCard category={parent} image={parentImage} />
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+function CategoryCard({ category, image }: { category: Category; image: string }) {
+  return (
+    <Link
+      to={`/category/${encodeURIComponent(category.slug)}`}
+      title={category.name}
+      className="group flex flex-col items-center text-center bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#008ECC] focus-visible:ring-offset-2 transition-all"
+    >
+      <div className="w-full aspect-square bg-[#F5F5F5] rounded-xl flex items-center justify-center p-4 mb-3">
+        <img
+          src={image}
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          className="max-h-full max-w-full object-contain group-hover:scale-110 transition-transform duration-300"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = FALLBACK_IMAGE;
+          }}
+        />
+      </div>
+      <span className="text-sm font-semibold text-gray-800 group-hover:text-[#008ECC] transition-colors line-clamp-2">
+        {category.name}
+      </span>
+    </Link>
   );
 }
