@@ -5,17 +5,12 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import { GET_BRANDS } from '../lib/graphql';
 
-// ============================================================
-// Brand styling (matched by slug)
-// - Only 3 brands have custom styling (Apple, Xiaomi, Samsung)
-// - All others fall back to a neutral card
-// ============================================================
 interface BrandStyle {
   bgColor: string;
   badgeBgColor: string;
   badgeTextColor: string;
-  logo?: string;        // optional — falls back to text
-  productImage?: string; // optional
+  logo?: string;
+  productImage?: string;
   bgCircleImage?: string;
   isDark: boolean;
 }
@@ -26,8 +21,8 @@ const BRAND_STYLES: Record<string, BrandStyle> = {
     badgeBgColor: 'bg-[#494949]',
     badgeTextColor: 'text-white',
     logo: '/assets/images/iphone-logo.png',
-    productImage: '/assets/images/Iphone-phone.png',
-    bgCircleImage: '/assets/images/ircle=behind-iphone.png',
+    productImage: '/assets/images/iphone-phone.png',
+    bgCircleImage: '/assets/images/circle-behind-iphone.png',
     isDark: true,
   },
   'xiaomi': {
@@ -36,21 +31,20 @@ const BRAND_STYLES: Record<string, BrandStyle> = {
     badgeTextColor: 'text-[#222222]',
     logo: '/assets/images/mi-xiaomi-logo.png',
     productImage: '/assets/images/xiaomi-phone.png',
-    bgCircleImage: '/assets/images/circle=behind-xiaomi.png',
+    bgCircleImage: '/assets/images/circle-behind-xiaomi.png',
     isDark: false,
   },
   'samsung': {
     bgColor: 'bg-[#E8F0FE]',
     badgeBgColor: 'bg-[#C5DBFF]',
     badgeTextColor: 'text-[#222222]',
-    logo: '/assets/images/realme-logo.png', // temporary — replace with samsung logo if available
-    productImage: '/assets/images/xiaomi-phone.png', // temporary
+    logo: '/assets/images/realme-logo.png',
+    productImage: '/assets/images/Galaxy S22 Ultra.png',
     bgCircleImage: '/assets/images/circle-behind-realme.png',
     isDark: false,
   },
 };
 
-// Neutral fallback for unknown brands
 const FALLBACK_STYLE: BrandStyle = {
   bgColor: 'bg-[#F5F5F5]',
   badgeBgColor: 'bg-[#E5E5E5]',
@@ -58,7 +52,6 @@ const FALLBACK_STYLE: BrandStyle = {
   isDark: false,
 };
 
-// Rotating fallback background colors for visual variety
 const FALLBACK_BG_PALETTE = [
   'bg-[#FFF3C7]',
   'bg-[#FFECE2]',
@@ -90,12 +83,11 @@ export const TopBrandsSection: React.FC = () => {
       .map((e: any) => e?.node)
       .filter(Boolean)
       .filter((b: any) => b?.slug)
-      .slice(0, 6); // show up to 6 brands
+      .slice(0, 6);
   }, [data]);
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-8 py-8 font-sans">
-      {/* Section Header */}
       <div className="relative flex items-center justify-between border-b border-gray-200 pb-3 mb-6">
         <div className="relative">
           <h2 className="text-[20px] sm:text-[24px] leading-[30px] font-bold text-[#666666]">
@@ -113,7 +105,6 @@ export const TopBrandsSection: React.FC = () => {
         </Link>
       </div>
 
-      {/* Brand Cards Grid */}
       <div
         className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6"
         aria-busy={loading}
@@ -122,7 +113,7 @@ export const TopBrandsSection: React.FC = () => {
           [...Array(3)].map((_, i) => <BrandCardSkeleton key={i} />)
         ) : error ? (
           <div className="col-span-full text-center py-8 text-sm text-gray-500">
-            Couldn&apos;t load brands.{' '}
+            Couldn't load brands.{' '}
             <button
               type="button"
               onClick={() => refetch()}
@@ -137,7 +128,6 @@ export const TopBrandsSection: React.FC = () => {
           </div>
         ) : (
           brands.map((brand: any, index: number) => {
-            // ✅ Use mapped style OR fallback (with rotating bg)
             const mappedStyle = BRAND_STYLES[brand.slug];
             const fallbackBg =
               FALLBACK_BG_PALETTE[index % FALLBACK_BG_PALETTE.length];
@@ -154,7 +144,6 @@ export const TopBrandsSection: React.FC = () => {
                 to={`/brand/${safeSlug}`}
                 className={`relative ${style.bgColor} rounded-2xl h-[190px] p-5 flex items-center justify-between overflow-hidden group transition-transform duration-300 hover:scale-[1.02] shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#008ECC] focus-visible:ring-offset-2`}
               >
-                {/* Background Circle (only if available) */}
                 {style.bgCircleImage && (
                   <img
                     src={style.bgCircleImage}
@@ -168,9 +157,7 @@ export const TopBrandsSection: React.FC = () => {
                   />
                 )}
 
-                {/* Left: Badge + Logo + Brand Name */}
                 <div className="flex flex-col justify-between h-full z-10 max-w-[60%]">
-                  {/* Brand badge */}
                   <div>
                     <span
                       className={`inline-block text-[13px] font-normal tracking-[0.1em] px-4 py-1.5 rounded-lg uppercase ${style.badgeBgColor} ${style.badgeTextColor}`}
@@ -179,7 +166,6 @@ export const TopBrandsSection: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Logo or brand name text */}
                   <div className="flex flex-col gap-2">
                     {style.logo ? (
                       <div className="h-[40px] flex items-center justify-start">
@@ -205,7 +191,6 @@ export const TopBrandsSection: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Right: Product Image (only if available) */}
                 {style.productImage && (
                   <div className="h-full w-[40%] flex items-center justify-end z-10">
                     <img
