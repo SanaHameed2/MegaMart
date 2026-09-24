@@ -6,3 +6,5 @@ dist
 
 .vercel
 .env*
+code-images.txt 
+current-files.txt 
