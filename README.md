@@ -20,6 +20,16 @@ A modern e-commerce marketplace built with React 19, TypeScript, Tailwind CSS, S
 
 ---
 
+## 🔒 Security Audit
+
+This project underwent a comprehensive security audit covering **14 database tables**, **40+ Row-Level Security (RLS) policies**, and **3 live attack simulations** (IDOR, privilege escalation) against the production Supabase instance. Every finding was verified with SQL queries and browser-console tests — not just policy definitions.
+
+**Result:** 9 vulnerabilities identified and fixed, 0 open findings.
+
+📄 **[Read the full Security Audit Report →](./docs/SECURITY_AUDIT.md)**
+
+---
+
 ## Tech Stack
 
 | Layer | Technologies |
@@ -44,3 +54,4 @@ cd MegaMart
 npm install
 cp .env.example .env    # add Supabase URL + anon key
 npm run dev
+```
