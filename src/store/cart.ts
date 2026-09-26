@@ -32,19 +32,35 @@ export interface CartState {
 }
 
 async function getOrCreateCartId(userId: string): Promise<string> {
+  // Try to get existing cart first
   const { data: existing } = await supabase
     .from('carts')
     .select('id')
     .eq('user_id', userId)
     .maybeSingle();
+
   if (existing) return existing.id;
 
+  // Try to create; if conflict, fetch the existing one
   const { data: created, error } = await supabase
     .from('carts')
     .insert({ user_id: userId })
     .select('id')
     .single();
-  if (error) throw error;
+
+  if (error) {
+    // Race condition: another call already created it — fetch it
+    if (error.code === '23505') {
+      const { data: fallback } = await supabase
+        .from('carts')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+      if (fallback) return fallback.id;
+    }
+    throw error;
+  }
+
   return created.id;
 }
 
@@ -61,24 +77,29 @@ export const useCart = create<CartState>((set, get) => ({
       set({ lines: readGuestCart(), loading: false });
       return;
     }
-    const cartId = await getOrCreateCartId(userId);
+    try {
+      const cartId = await getOrCreateCartId(userId);
 
-    const { data } = await supabase
-      .from('cart_items')
-      .select('quantity, variant_id, products(id, name, slug, price, stock, product_images(url, sort_order))')
-      .eq('cart_id', cartId);
+      const { data } = await supabase
+        .from('cart_items')
+        .select('quantity, variant_id, products(id, name, slug, price, stock, product_images(url, sort_order))')
+        .eq('cart_id', cartId);
 
-    const lines: CartLine[] = (data ?? []).map((row: any) => ({
-      productId: row.products.id,
-      slug: row.products.slug,
-      quantity: row.quantity,
-      variantId: row.variant_id,
-      name: row.products.name,
-      price: row.products.price,
-      stock: row.products.stock,
-      image: row.products.product_images?.[0]?.url ?? null,
-    }));
-    set({ lines, loading: false });
+      const lines: CartLine[] = (data ?? []).map((row: any) => ({
+        productId: row.products.id,
+        slug: row.products.slug,
+        quantity: row.quantity,
+        variantId: row.variant_id,
+        name: row.products.name,
+        price: row.products.price,
+        stock: row.products.stock,
+        image: row.products.product_images?.[0]?.url ?? null,
+      }));
+      set({ lines, loading: false });
+    } catch (err) {
+      console.error('[cart.hydrate] error:', err);
+      set({ lines: [], loading: false });
+    }
   },
 
   addItem: async (line, userId) => {
